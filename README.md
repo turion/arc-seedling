@@ -10,7 +10,7 @@ You aren't someone overseeing the production of code lines,
 you're a programmer who builds something great.
 Keep it that way.
 
-LLMs can be used to lift burdens of your shoulders, not create additional ones.
+LLMs should be used to lift burdens of your shoulders, not create additional ones.
 Keep enjoying programming.
 Stay on top of what you're doing,
 stay good at what you're good at,
