@@ -6,14 +6,16 @@ history builds, and each one is one reviewable idea.** It is not documentation f
 to install. It is a set of instructions, agent briefs and procedures that an AI agent writes to your
 machine as plain markdown files. No package, no dependency, no runtime.
 
-**If you are a human reading this.** Hand the whole file to a coding agent with file access to your
-machine — Claude Code or a similar harness — and say: *"Read this and set up the Core layer for me,
-then tell me what the Standard and Optional layers would add."* It will interview you (six questions,
-§24), write about four files, and explain each one. If you would rather read first: §1 is the problem
-it solves, §2 is the five-minute version, §25 is the honest account of which parts are proven and
-which are not.
+**If you are a human reading this.** Point a coding agent with file access to your machine — Claude
+Code or a similar harness — at this repository and say: *"Read this and set up the Core layer for
+me, then tell me what the Standard and Optional layers would add."* It will interview you (six
+questions, §24), write about four files, and explain each one. If you would rather read first: §1 is
+the problem it solves, §2 is the five-minute version, §25 is the honest account of which parts are
+proven and which are not.
 
-**If you are the agent.** §0, immediately below, is your instruction. Follow it in order.
+**If you are the agent.** Your instructions are in `AGENTS.md`, beside this file: it says what
+order to read this in, what to install by default, and what to do when you come back to change it.
+This file is the material; that one is the procedure.
 
 **Where it came from.** This is extracted from a system that ran daily for months on one person's
 machine, across several repositories in different languages. It has been generalised: the specific
@@ -33,10 +35,15 @@ particular harness, or a team.
 
 ---
 
-This file is self-contained. It is written so that an **adopting agent** — with file access to a
+This file stands on its own. It is written so that an **adopting agent** — with file access to a
 user's machine and no access to the system this came from — can stand the system up from scratch,
-explain it as it goes, and tailor it to the user in front of it. Everything it needs is here or it
-does not exist.
+explain it as it goes, and tailor it to the user in front of it. Everything it needs to know about
+the system is here or it does not exist; only the order to read it in lives next door, in
+`AGENTS.md`.
+
+**Which revision this is**, and what changed in each, are in `CHANGELOG.md` beside it — written so
+that an adopter already running an earlier revision updates their own setup from the diff rather
+than re-reading this file to find what moved.
 
 Throughout, **the maintainer** means the human who owns the repository and decides what the software
 should mean. **The supervisor** means the agent session driving a run. **A subagent** means a
@@ -45,59 +52,16 @@ thrown away.
 
 ---
 
-## Version and changelog
-
-**This file is version 1.**
-
-**Every closed meta-arc produces a new revision of this file.** That is the agreed practice, and it
-exists so that someone who has already adopted an earlier revision can update their own setup **from
-the diff** rather than re-reading several thousand lines to find what moved. A revision that changes
-nothing an adopter must act on still gets an entry saying so.
-
-**How to add the next entry.** Bump the version line above, and put the new entry **at the top of the
-list below** — newest first. One bullet each: the version, the date, one sentence on what the
-revision is, then only what an adopter has to *do*. A changelog nobody can scan is not a changelog,
-and the moment an entry starts narrating the arc that produced it, nobody scans it.
-
-```
-- **vN** — <date> — <one sentence on what this revision is>.
-  **To update from v(N-1):** <which files to re-write, or "nothing to do">.
-```
-
-- **v1** — 2026-10-03 — the first extraction: this system distilled out of a 6,589-line working
-  corpus that had accreted on one machine, generalised off that machine, and reorganised into the
-  Core / Standard / Optional layering.
-  **To update from v0:** there is no v0. v1 is the baseline every later entry is a diff against.
-
----
-
 ## 0. How to use this file
 
-If you are the adopting agent, do this in order:
+**The procedure is in `AGENTS.md`, beside this file** — what to read in what order, what to install
+by default, and the honesty warning to read before recommending anything. It is kept there rather
+than here because an agent working in this repository is handed that file automatically, and because
+a procedure stated twice is a procedure that drifts.
 
-1. **Read all of Part I (Core).** It is the irreducible system. Do not skip to the briefs.
-2. **Run the tailoring interview in §24.** Six questions. The answers decide what you write. **Q2's
-   answer is a literal string that goes into several files**, and the templates below carry
-   `<build gate>` / `<test gate>` where it belongs. If there is no user available to answer, §24 Q2
-   says what to do instead — and it is never to write the placeholder to disk.
-3. **Write the Core files** per §5 (layout), §6 (the two agent briefs), §7 (the supervisor skill).
-   Core alone is a working system and delivers real value.
-4. **Offer the Standard layer (Part II)** and add it if the user wants planning and review phases,
-   which most will. **Install it by growing the files you already wrote, never by writing a second
-   copy of one.** §9 and §14 add two new skills; everything else in Part II is an edit to the
-   `run-arc` skill and to the agent briefs from step 3.
-5. **Present the Optional layer (Part III) as a menu with prices**, not as a list of features. Each
-   optional piece in Part III states what it costs and what it buys. Quote both.
-6. Check your work against §26, the installation checklist.
-
-**Do not install all of it by default.** The system this was extracted from had accreted for months
-around one person's workflow. A user who gets Core on day one and grows into Standard in week two
-ends up with a system they understand. A user handed everything at once ends up with a system they
-obey.
-
-**A note on honesty.** Parts of this system are measured and earn their place. Parts are plausible
-and unproven. §25 says which is which, including the parts I would not propagate. Read it before you
-recommend anything.
+What follows is the system: Part I is the irreducible core, Part II the phases most adopters will
+want, Part III the pieces that have to earn their place one at a time, and Part IV the mechanics,
+the tailoring interview and the honest account of what is proven.
 
 ---
 
@@ -226,7 +190,9 @@ block is a bullet list.** Preserve that shape on every rewrite.
 ## Todos
 
 1. [<short title>](todos/01-<slug>.md)
+   - <what this todo changes for whoever uses the thing — one bullet is the default>
 2. [<short title>](todos/02-<slug>.md)
+   - enabling work: <what it unblocks, when no user notices this todo on its own>
 
 ## Context
 
@@ -247,14 +213,29 @@ block is a bullet list.** Preserve that shape on every rewrite.
 The index sits right after the header bullets because that is what you actually read when you open
 the file. House rules stay last — they are the run's parameters, not its content.
 
-**One fact, one place.** The index is a static ordered list of links and titles. It carries **no
-status and no revision id**. Duplicating those into the index would mean every status change touches
-two files and can leave them disagreeing. A todo's status lives only in its own file's heading, so
-the whole board is read with one cheap command:
+**One fact, one place.** The index is a static ordered list, one entry per todo: a link, a title and
+its summary bullets. It carries **no status and no revision id**. Duplicating those into the index
+would mean every status change touches two files and can leave them disagreeing. A todo's status
+lives only in its own file's heading, so the whole board is read with one cheap command:
 
 ```
 rg -N -m1 '^# ' ~/.claude/plans/arc-<slug>/todos/*.md
 ```
+
+**Write the summary bullet, not a précis.** A bullet says what the todo changes for whoever uses the
+thing — the register of the arc's own `Value` bullet, one todo at a time. It is **not** a précis of
+the todo's **Spec**: a précis is a second copy of a fact, and it drifts the moment a rework changes
+the Spec and nobody updates the other copy, with nothing in this design reading the two together to
+catch it. A todo nobody notices gets a third shape rather than a forced one of the first two —
+`enabling work: <what it unblocks>`, naming the later todo or capability — because a planner offered
+only *"what it changes for a user"* or *"not a précis"* will otherwise either invent a user-facing
+claim that is not true or write the précis anyway. **One bullet is the default and three is the
+ceiling, never the target.** A rework that changes what a todo does rewrites its bullets in the same
+edit; whoever appends a todo to the index writes its bullets then and there.
+
+> **Why the ceiling is low.** Across the 32 arcs on the originating machine the median arc is 14
+> todos, the 90th percentile 39, the largest 82. Three bullets throughout would turn the index into
+> screenfuls exactly on the arcs with the most to catch.
 
 **Keep House rules almost empty.** Do not copy the repo's conventions into the plan directory. In
 Claude Code, the `CLAUDE.md` hierarchy is loaded into every session *and into every subagent*
@@ -728,7 +709,9 @@ Return a non-`done` status rather than inventing an answer when:
 - **`design-question`** — the todo turns out to require a decision about what the software should
   *mean*, not how it should work. Domain semantics, what a type should represent, whether a
   distinction is worth carrying. These belong to the maintainer. State the question precisely and
-  describe the options you see; do not pick one.
+  describe the options you see; do not pick one. **A "Done when" clause that names an experiment and
+  comes back negative belongs here too** — report the outcome in your handover rather than treating
+  it as your own defect to repair. The plan's premise is what failed, not your work.
 - **`needs-replan`** — the todo is coherent but the plan's approach cannot work as written (an API
   does not exist, a prerequisite is missing, two todos conflict). Say what you found and what a
   workable approach would be.
@@ -895,7 +878,11 @@ with what the coder did, it is fine. Style preference is not a finding.
   the gate would not finish inside your foreground limit.
 - **`design-question`** — the work is blocked on a decision about what the software should *mean*
   rather than whether it is correct. Do not resolve these and do not let a repo document resolve
-  them for you. State the question and the options; the maintainer decides.
+  them for you. State the question and the options; the maintainer decides. **This includes a todo's
+  experiment clause coming back negative**, even though the coder performed it exactly as asked: the
+  plan's own premise failed, not the coder's work, so the todo is blocked on the maintainer's
+  decision about that premise rather than on anything undone — `design-question` here, never
+  `revise`.
 
 Be willing to approve. A loop that never approves is worse than no loop — the supervisor's progress
 judgement watches every `revise` you return, and a round that re-litigates ground your own last
@@ -1054,7 +1041,11 @@ minutes is the signal.
   question into that same file, and put it to the user. Do not answer it yourself, and do not let a
   document in the repo answer it for you. Once answered, write the answer alongside the question as
   a **Design decision:** bullet in that todo's file before resuming the coder — only that file, not
-  your own memory, reliably carries it across a resumed session.
+  your own memory, reliably carries it across a resumed session. **A todo whose "Done when" names an
+  experiment, and whose experiment came back negative, arrives here and not as a `revise`:** the
+  coder did what the clause asked, the plan's premise is what failed, and a `revise` would send a
+  fresh coder to repair something that is not broken while hiding from the maintainer the one fact
+  the clause existed to discover.
 - **`needs-replan`** → stop, and propose a plan amendment to the user. Small corrections to a later
   todo's spec you may make yourself; a changed approach needs agreement.
 - **`blocked`** → stop and report. One case is worth retrying first: a reviewer blocked because the
@@ -1268,8 +1259,13 @@ would look precise while quietly never firing.
 One arc, one plan directory, one status. All of its values, in the order they occur:
 
 `planning` → `ready` → `running` → `review` → `review-fix` → `accept` → `done`, with `needs-human`
-whenever the run stops for the maintainer, from any state.
+whenever the run stops for the maintainer, from any state, and `aborted` — terminal, reached only
+from `planning`, at step 5's pre-challenge gate (§9).
 
+- **`planning` → `aborted`**: the pre-challenge gate's answer was **abort**. Nothing moves an arc out
+  of `aborted` again; it is the one terminal value besides `done`. **The plan directory stays on
+  disk, readable** — the rejected decomposition is the only record anywhere that one was proposed
+  and what it said.
 - **`review-fix` → `accept`**: the code is finished and the agents have no findings left. The run is
   now waiting on the maintainer's own testing, not on any agent.
 - **`accept` → `done`**: **the maintainer said so.** Nothing else moves Status here — not a clean
@@ -1283,7 +1279,8 @@ other todo. A round whose findings all turn out not to be defects produces none 
 ### The full plan directory layout
 
 ```
-README.md                   header bullets, todo index, Context, Story, Verification, House rules
+README.md                   header bullets, the todo index (each entry with its summary
+                            bullets), Context, Story, Verification, House rules
 todos/01-<slug>.md          one todo
 todos/fix1-<slug>.md        review-fix todos, written by /run-arc
 todos/test1.1-<slug>.md     test-round todos, written by /test-arc
@@ -1390,8 +1387,9 @@ that the ask was understood — and it does nothing else. It holds exactly two t
 - a list of **what you will research** before the real plan is written, as open questions and areas
   to read, **never as answers**.
 
-Nothing else goes in it. No todo list. No context prose. No gates. No value bullet. No file manifest.
-Each has a place of its own further down.
+Nothing else goes in it. No todo list — the decomposition is step 5's, and the maintainer first sees
+it at that step's own pre-challenge gate. No context prose. No gates. No value bullet. No file
+manifest. Each has a place of its own further down.
 
 **Under a minute for a simple arc, five at the outside. The budget is the point, not a courtesy.** A
 pre-plan that takes longer has started planning, and a misread ask is visible in the first paragraph
@@ -1462,16 +1460,57 @@ If the honest answer is that no user notices this arc, write `enabling work:` an
 unblocks — that is a perfectly good arc. A plan that oversells refactoring as user value produces a
 finding later, at the arc review, when the claim is held against the finished code and found empty.
 
+#### The pre-challenge gate
+
+With the plan directory written and step 6's fan-out **not yet spawned**, show the maintainer the
+index summary: `README.md`'s `## Todos` list — link, title and summary bullets, exactly as it
+stands. **Print it in the message itself.** Do not point at the file and invite them to go read it;
+the whole ask this gate answers is that they not have to open anything to decide direction.
+
+**It waits.** Other questions in this design proceed when no answer comes, because guessing wrong
+there costs one correction at the next boundary. This one is not that: it exists for no reason but
+to be an abort point, and an abort point that proceeds on silence has stopped being one. So it holds
+until one of three answers comes back, each with its own consequence:
+
+- **abort.** The arc stops before the challenge phase spends a single fan-out. Set **Status** to
+  `aborted` (§8) and end the session. **Keep the plan directory — never delete it.** An abort here
+  is this gate's strongest success case; deleting the directory would leave nothing anywhere
+  recording that a decomposition was proposed and rejected, or what it said.
+- **redirect.** Rewrite the decomposition — the same kind of edit step 6's rework makes, directly in
+  the plan directory, with no coder and no gate — and show the gate again against the rewrite. Edit
+  the directory in place rather than deleting and rebuilding it. **Preface the second showing with
+  one line per objection they raised:** the objection, and either the todo that now answers it, by
+  its new number, or a statement that it was not acted on and why. A rewrite renumbers todos, so
+  without those lines they would have to re-derive from scratch whether each objection was answered
+  — re-reading, at the one gate built to stop them re-reading.
+- **nod.** Step 6's fan-out spawns as planned.
+
+> **What it costs and what it buys.** One message and a wait, against a phase that spends up to nine
+> agents per round. It takes the risk of an unexamined premise reaching the maintainer cold at step
+> 7 off that step; it does not take the risk of a challenge-driven rework off it, which is what step
+> 7 still has to catch.
+
+**Without the challenge phase the gate collapses into step 7.** Nothing then runs between the two to
+change the decomposition, so there is one showing, not two — but keep the gate's three answers,
+`aborted` included: an arc the maintainer rejects at the only review point still needs somewhere to
+land.
+
 ### Step 6 — Challenge the plan
 
 **Optional layer.** See §16. If the user is not taking it, go straight to step 7.
 
 ### Step 7 — Get the finished plan approved
 
-Show the todo list and the gates to the user and get agreement **before any code runs**. This is the
-one review point in the whole design where the human sees everything at once, and it is cheap here
-and expensive later. It is also the **first** time they see the todo list at all — step 4's pre-plan
-carried none.
+Show the **same index summary the pre-challenge gate already showed** — the same artefact, not a
+second list — along with the gates, and get agreement **before any code runs**. This is the one
+review point in the whole design where the human sees everything at once, and it is cheap here and
+expensive later.
+
+**What this step is for once the gate exists.** The challenge runs entirely *between* the gate and
+here, and it can still change what they approved there: a `fix` rewrites wording or scope, a finding
+is dismissed on the planner's own judgement, a todo is split, dropped or exited. So what reaches them
+here is the gate's decomposition **after** that happened, held against the *What the challenge
+disputed* block (§16) so they can see what moved and why.
 
 Ask about anything genuinely ambiguous now. Once the run starts, the only interruptions should be
 real design questions.
@@ -1788,7 +1827,11 @@ with what the coder did, it is fine. Style preference is not a finding.
 - **`blocked`** — you cannot proceed at all (environment broken, permission denied, missing file).
 - **`design-question`** — the work is blocked on a decision about what the software should *mean*
   rather than whether it is correct. Do not resolve these and do not let a repo document resolve
-  them for you. State the question and the options; the maintainer decides.
+  them for you. State the question and the options; the maintainer decides. **This includes a todo's
+  experiment clause coming back negative**, even though the coder performed it exactly as asked: the
+  plan's own premise failed, not the coder's work, so the todo is blocked on the maintainer's
+  decision about that premise rather than on anything undone — `design-question` here, never
+  `revise`.
 
 Be willing to approve. A loop that never approves is worse than no loop — the supervisor's progress
 judgement watches every `revise` you return, and a round that re-litigates ground your own last
@@ -2123,6 +2166,19 @@ English, keep the domain terms as the product uses them.
   through its effect on the user, and then say it that way.
 - Do not run the build or the test gate. Do not edit anything.
 
+## When the repo under judgement states what it is for
+
+If this repository keeps a file stating its **objectives** — what it exists to do, as distinct from
+how any of it works — read it and judge against what it says. Read it **only when the repo under
+judgement is the one that file describes**: an ordinary arc is judged against its *product's*
+objectives, the ones `## First, find out who the users are` points you to, never the tooling's.
+Judging someone's application against the objectives of the system you are part of would be worse
+than useless.
+
+Say in `OBJECTIVES` whether you read it and whether it changed your verdict. **A mechanism whose
+purpose is written down somewhere you did not look reads as pure cost**, and a value verdict is one
+the supervisor may not argue down.
+
 ## When you don't know the domain
 
 Judging value needs domain facts you may not have — how a particular trade's working day is
@@ -2160,6 +2216,7 @@ FINDINGS:
   (or "none")
 NEEDS-UI-CHECK: what to verify in the running app, specifically; "no" if nothing
 NEEDS-DOMAIN: specific questions research did not settle; "no" if nothing
+OBJECTIVES: n/a — not this repo | read, verdict unchanged | read, changed: <what changed>
 SUMMARY: at most three sentences
 ```
 
@@ -2199,6 +2256,10 @@ Then sort every surviving finding into exactly one bucket:
 **Never turn an `ask` into a `fix` todo.** A `why` finding in particular is usually not code: "this
 delivers no user value" is answered by the maintainer, not by an agent writing more of it.
 
+**The `why` lens's `OBJECTIVES` line is not a finding** (§25). Carry it into `review.md` verbatim
+alongside the triaged list, named plainly as a non-finding: the drop-anything-you-would-not-defend
+rule above is a filter over findings, and this line has nothing to defend, only to relay.
+
 Write the whole triaged list into `review.md`. **That is the durable record of what was found; if the
 session dies here, it is all that survives.**
 
@@ -2234,7 +2295,8 @@ revision per todo.
 
 1. **Write the fix todos as `todos/fix<n>-<slug>.md`**, `<n>` continuing from the highest already
    present rather than restarting — the same shape as an ordinary todo file — and append each to
-   `README.md`'s index. One coherent topic each, with a real "Done when" clause. **The findings are
+   `README.md`'s index, **each new entry carrying its own summary bullets** the way every other entry
+   does (§3). One coherent topic each, with a real "Done when" clause. **The findings are
    the spec — quote them.** One plan stays one arc stays one pull request.
 2. **More than four fix todos means the arc was under-planned.** Do not quietly start a second
    project. Report the list and ask the user whether to fix, defer, or replan.
@@ -2410,8 +2472,9 @@ and worded by the planning phase's own rules.
 contain.** A Spec saying "verify X against `research/foo.md`" is a claim that `foo.md` settles X.
 Where it does not, the todo either names what does, or the fact is ruled first.
 
-Add a `## Test round N` section to `README.md`'s index listing this round's todos, immediately
-followed by:
+Add a `## Test round N` section to `README.md`'s index listing this round's todos — **each entry
+carrying its own summary bullets** the way every other index entry does (§3) — immediately followed
+by:
 
 - a **Not changed** list naming every `not-a-defect` finding and the reason its triage report gave;
 - a **Blocked** list naming every finding whose report still carries an open item the round did not
@@ -2661,8 +2724,11 @@ Three rules govern the rework, each drawn from a real failure:
 **d. Re-check, but only what changed.** Spawn again over the reworked plan, briefing each lens with
 the previous round's findings and what was done about each — and spawn **only the lenses whose
 findings were acted on.** A lens that returned `clean` has nothing to re-check; running it again is
-up to two-thirds of a cycle spent confirming a verdict it already gave. Stop the moment no lens
-returns anything worse than a `note`.
+up to two-thirds of a cycle spent confirming a verdict it already gave. **Name, in that same brief,
+every todo that has exited the challenge** (below) and tell the re-spawned lens not to re-challenge
+them: an exited todo's remaining question went to the run loop, not back into this round, and a lens
+briefed only on the plan directory would otherwise read it like any other open todo. Stop the moment
+no lens returns anything worse than a `note`.
 
 **e. The progress judgement.** A **cycle** is a rework plus the fan-out that re-checks it. A **check**
 is always the last action able to accept or reject the plan; a rework never is.
@@ -2699,6 +2765,38 @@ judgement watches for.** They supplied a fact the lenses have never seen. The sa
 maintainer settling an `unresolved` objection with "fix it": an instructed rework is still a rework,
 so nothing about the instruction makes it checked, and the lenses run again on it.
 
+**A todo whose dispute is empirical exits the challenge.** The progress judgement measures whether
+the *round* is progressing; nothing in it asks whether one todo's remaining dispute would be settled
+faster by running something than by arguing about it again — in the maintainer's own words,
+*"stopping the challenge of a particular todo exactly at the point where it is easier to evaluate the
+todo by just trying to implement and reviewing it."* **An empirical todo is one whose remaining
+dispute a planner could settle by observing an outcome**: a query against a database the plan already
+names, a function's actual return, the behaviour of a path already written elsewhere. If answering it
+still takes a judgement about what the code should do, what a type should mean, or which of two
+designs to prefer, it is not empirical, however many rounds it has drawn.
+
+Apply it to every todo still carrying a finding **once every lens of the round has returned and
+before that round's rework begins** — the same moment as the repair-count rule below, and evaluated
+**first**, so a todo qualifying for both has exactly one outcome: it exits. An experiment is cheaper
+than the maintainer's attention, and the maintainer's attention is what an escalation spends.
+
+**The exit produces three things.** A clause in the todo's own "Done when" naming the experiment and
+the outcome that would falsify the todo's approach, graded to the same standard as every other clause
+— not *"verify the filter is correct"* but *"query the verification database for `<the named
+condition>`; fewer than `<N>` matching rows means the approach is wrong."* A disposition in
+`challenge.md`: `exited — <the open question handed to the run loop>`. And exclusion from every later
+round's re-check in this phase. **A negative outcome in the run is not the coder's defect** — the
+plan's own premise failed — so the reviewer returns `design-question` on it, never `revise`.
+
+> **The worked case.** A todo anchoring a statistic row into a filtered list drew a blocking finding
+> in three consecutive rounds, all of the same class: a filter that looks like the row and is not.
+> The first two repairs each reasoned about the predicate from the code alone, and each was validated
+> only against the case the previous repair had broken. The third round's lens stopped reasoning and
+> ran one query against the verification database the plan already named, settling in a single pass
+> what two rounds of reading could not. Every one of those findings named a slightly different case,
+> so the progress judgement called every round *progressing* — correctly. What it has no way to say
+> is that the dispute was never going to be settled by more reading.
+
 **A todo repaired twice escalates on its own.** The progress judgement watches the round as a whole;
 nothing in it watches a single todo's record across rounds. **A todo repaired twice is evidence the
 plan cannot settle it by reasoning** — two attempts to fix it by thinking have already failed, and a
@@ -2713,9 +2811,15 @@ is answered within the same live session.
 One `## Round N` section per round. Per finding, four fields in this order: **the finding as the lens
 stated it, with the evidence it turned on** — never a paraphrase, since the paraphrase would be
 written by the very act of dismissing it — then its **lens**, its **grade**, and its **disposition**:
-`fixed`, `dismissed — <reason>`, `ask`, `note`, or `unresolved — <…>`. When the maintainer later
-settles a finding, record the transition in place rather than overwriting: `dismissed → fixed
-(maintainer)`, `unresolved → accepted (maintainer)`.
+`fixed`, `dismissed — <reason>`, `ask`, `note`, `exited — <the open question handed to the run
+loop>`, or `unresolved — <…>`. When the maintainer later settles a finding, record the transition in
+place rather than overwriting: `dismissed → fixed (maintainer)`, `unresolved → accepted
+(maintainer)`.
+
+**`exited` is the one disposition that never transitions.** An exited todo is excluded from every
+later round in this phase, so nothing here is ever positioned to revise the record; what became of
+its open question is read off the todo's own "Done when" clause and the run loop's verdict on it, not
+off this line.
 
 **It also keeps the value lens's walked interactions verbatim.** That is the phase's one artefact with
 a second reader: the handoff message's **Try this** block and the UI tester both want exactly those,
@@ -2724,7 +2828,10 @@ discarded with it.
 
 Each `## Round N` heading also records what the round **cost**: which lenses ran, how many nested
 subagents they reported, roughly how long, **the base revision**, **which todos the rework touched**,
-**the round's progress judgement**, and **the running total of fan-outs so far**.
+**which todos exited**, **the round's progress judgement**, and **the running total of fan-outs so
+far**. Write *which todos exited* as the explicit `none` when none did: most rounds exit nothing, and
+an absent field cannot be told apart from one nobody wrote, so a reader checking whether the
+mechanism ever fires needs the empty case stated as plainly as a populated one.
 
 > **Why the base revision is read fresh each round, not carried over.** A plan's factual base can move
 > under it mid-phase and nothing else detects it. In one arc the repository's history changed under
@@ -3032,6 +3139,19 @@ keep the domain terms as the product uses them.
 Reserve `escalate` for the case where the arc's worth is genuinely the maintainer's call. **Pure
 enabling work, honestly labelled, is not a finding.**
 
+## When the repo under judgement states what it is for
+
+If this repository keeps a file stating its **objectives** — what it exists to do, as distinct from
+how any of it works — read it and judge against what it says. Read it **only when the repo under
+judgement is the one that file describes**: an ordinary arc is judged against its *product's*
+objectives, the ones `## First, find out who the users are` points you to, never the tooling's.
+Judging someone's application against the objectives of the system you are part of would be worse
+than useless.
+
+Say in `OBJECTIVES` whether you read it and whether it changed your verdict. **A mechanism whose
+purpose is written down somewhere you did not look reads as pure cost**, and a value verdict is one
+the supervisor may not argue down.
+
 ## When you don't know the domain
 
 Research is allowed in the repo, the issue and the web — with the schema-loading step above before
@@ -3071,6 +3191,7 @@ FINDINGS:
      → <the concrete edit to the plan that fixes it>
   (or "none")
 NEEDS-DOMAIN: specific questions research did not settle; "no" if nothing
+OBJECTIVES: n/a — not this repo | read, verdict unchanged | read, changed: <what changed>
 SUMMARY: at most three sentences
 ```
 
@@ -3891,7 +4012,8 @@ One entry belongs on neither list above, and an earlier draft of this file put i
   Against *that* objective, token cost is beside the point. **So: expensive, and worth it to an
   adopter who actually codes alongside their agents. An adopter who never does needs none of it —
   not a reduced version, none. Recommend it on that question and on no other, and quote the costs and
-  the objective in the same breath, never the costs alone.**
+  the objective in the same breath, never the costs alone.** **And write that objective down where a
+  judging agent will read it** — see *Two things I would add*, below, for where.
 
 > **The general lesson, and it is half of why this file exists.** *A design whose real justification
 > is unwritten will be misjudged by every future reader.* The rationale above was recorded nowhere in
@@ -3904,14 +4026,42 @@ One entry belongs on neither list above, and an earlier draft of this file put i
 > `decisions.md` (§3) is for, what the blockquotes throughout this file are for, and what the
 > revisit-trigger pattern in the next subsection asks you to take one step further.
 
-### One thing I would add if I were installing this fresh
+### Two things I would add if I were installing this fresh
 
-The system has no mechanism for **retiring a rule**. Every rule in the originals arrived with an
-argument and a measurement; almost none had a stated condition under which it should be removed. The
-one exception — a *revisit trigger* written into the coder's rule 7, naming the observation that would
-falsify it — is the best single idea in the corpus and appears exactly once. **Copy that pattern:
-when you write a rule from one failure, write beside it what would show the rule costs more than it
-saves.**
+**First: an `OBJECTIVES.md` at the repo root, saying what the system is for.** It is the direct fix
+for the failure the blockquote above describes, and it is cheap — one page, tracked, **read on demand
+and deliberately not resident.** Keeping it out of the always-loaded instruction file is the point:
+it charges nothing to the sessions that never need it, and a statement only a judgement about worth
+ever reads should not be billed to every session on every project.
+
+It holds the purpose **in the maintainer's own words, quoted not paraphrased**, then one entry per
+objective, each saying *what it is*, *why it is one* — again quoting — and **what scoring it as waste
+would cost.** That third field is the one that does the work:
+
+> **Measured, by this extraction.** An agent reading the whole corpus with no statement of purpose
+> read the human spike queue (§18) as a wall-clock optimisation, found it loses on token cost, and
+> recommended deleting it. The measurements were right and the conclusion was exactly backwards.
+> Either standing value lens can reach the same wrong verdict on any arc touching that machinery,
+> and a `why` finding lands in the `ask` bucket, which the supervisor is forbidden to argue down.
+
+**What belongs in it is any objective not legible from the mechanism itself.** In the originating
+system that was two: that the maintainer stays in **surface contact with the code and in flow**
+(§18 — they are responsible for delivering the code, and each wait between todos fills their head
+with unrelated input), and that **constant improvement is an objective rather than overhead** (§19's
+observation store, §16's challenge phase, §21's watch orders — judged against the todos one arc
+ships, every one is pure cost). Both look like waste to a reader with only the diff to judge by.
+
+Both standing value lenses (§11's `why`, §16's `value`) are told to read it when the repo under
+judgement is the one it describes, and to report an `OBJECTIVES` line — `n/a`, `read, verdict
+unchanged`, or `read, changed: <what changed>`. The supervisor relays that line into `review.md`
+rather than triaging it (§12): it is not a finding.
+
+**Second: a mechanism for retiring a rule.** The system has none. Every rule in the originals
+arrived with an argument and a measurement; almost none had a stated condition under which it should
+be removed. The one exception — a *revisit trigger* written into the coder's rule 7, naming the
+observation that would falsify it — is the best single idea in the corpus and appears exactly once.
+**Copy that pattern: when you write a rule from one failure, write beside it what would show the rule
+costs more than it saves.**
 
 ---
 
@@ -3949,13 +4099,21 @@ Work through this with the user. Tick each line out loud.
 - [ ] There is exactly **one** `~/.claude/skills/run-arc/SKILL.md` — §10 through §13 were merged
       into the file §7 wrote, and no second run-arc skill exists anywhere. Check by listing
       `~/.claude/skills/`; this failure is silent otherwise.
-- [ ] The Status vocabulary (§8) is in both skills and they agree.
+- [ ] The Status vocabulary (§8) is in both skills and they agree, `aborted` included.
+- [ ] `plan-arc`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
+      index summary rather than a second list.
+- [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
+      places that append to an index afterwards (§12, §14).
 - [ ] The session-grouping question (§8) is in `run-arc`'s preamble.
 
 **Optional — only what the user chose**
 
-- [ ] Challenge phase: three lens briefs, step 6 of `plan-arc`, the `challenge.md` format, **and the
-      two counts at the top of `review.md`.**
+- [ ] Challenge phase: three lens briefs, step 6 of `plan-arc`, the `challenge.md` format including
+      the `exited` disposition and the empirical-exit rule (§16), **and the two counts at the top of
+      `review.md`.**
+- [ ] `OBJECTIVES.md` written (§25) if any objective of this setup is not legible from the mechanism
+      — with the `OBJECTIVES` line added to whichever value lenses were installed, and the
+      relay-don't-triage rule in `run-arc` (§12).
 - [ ] UI tester: the brief, plus the "is the app up?" check **before the loop**, in both skills.
 - [ ] Human coding seat and spike queue: only for a maintainer who actually codes alongside the
       agents, and only on a workspace-capable VCS. Quote §18's costs **and** its objective together.
