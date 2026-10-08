@@ -6,6 +6,24 @@ history builds, and each one is one reviewable idea.** It is not documentation f
 to install. It is a set of instructions, agent briefs and procedures that an AI agent writes to your
 machine as plain markdown files. No package, no dependency, no runtime.
 
+**What it is for — read this before any mechanism below.** The person whose system this was stated
+its purpose in two sentences, and everything else in this file serves them:
+
+> The point of the arc system is to support the human in high quality development, not to produce
+> tons of code. Focus on human well-being, constant improvement and productivity underpins
+> everything.
+
+So **code volume is never the measure.** An arc that ships little and leaves its maintainer better
+placed is a good arc. The maintainer's attention, flow and judgement are costs of the first rank —
+how often the system interrupts, how long a session runs, how much it asks them to read — and they
+are weighed beside every token figure quoted below, never after them. Several mechanisms here look
+like pure overhead when judged only against the code an arc ships: the challenge phase (§16), the
+human spike queue (§18), the observation store (§19), the watch orders (§21). Judge them against
+this purpose before cutting them; §25 records the one time a careful read of the whole original
+corpus, missing this sentence, recommended deleting exactly the mechanism that served it most.
+**Ask the user what the system is for, in their own words, before installing anything**, and offer
+to write the answer down (§25's `OBJECTIVES.md`) where a judging agent will read it.
+
 **If you are a human reading this.** Point a coding agent with file access to your machine — Claude
 Code or a similar harness — at this repository and say: *"Read this and set up the Core layer for
 me, then tell me what the Standard and Optional layers would add."* It will interview you (six
@@ -1191,9 +1209,13 @@ the next phase*, not about it being full.
 > almost always means the supervisor absorbed something that belonged in a subagent — a diff, a build
 > log, an environment repair. Say so in one line and check what the plan directory is now missing.
 
-### Session length is a cost decision, and it is made once
+### Session length is a reading, taken before every revision
 
-This is the single largest cost lever in the system, and the one most often missing.
+**What this touches:** step (e) of the `run-arc` skill from §7, its Standing rules, the review-fix
+arc's step 3 (§12), the planning checkpoint at the start of `plan-arc`'s step 7 (§9), and one new
+file, the occupancy reader below. Still one run-arc file.
+
+Session length is the largest cost lever in the system, and the one most often missing:
 
 > **The cost identity.** Billed input for a session is the sum of its context size over every turn —
 > a token that enters context is paid again on every later turn, not once. **So cost is quadratic in
@@ -1205,54 +1227,150 @@ This is the single largest cost lever in the system, and the one most often miss
 > more, because a fresh session re-reads a floor of roughly 70k tokens by its fifth turn. **The knee
 > is at 75 turns.**
 
-> **And the target was not being met.** The same corpus's sessions ran a median of 99 real turns, p75
-> 143, p90 194, max 296, against a stated target of ~54. The rule was not binding in practice and
-> nothing in the loop noticed. That is the finding, not the target.
+**The rule. Before starting any revision, the supervisor reads its own context occupancy.** Below
+roughly **50%** of the window, it starts the revision. At or past it, it starts **no new revision**
+and hands off. **It packs up — it does not ask:** reaching the threshold *is* the decision, so
+nothing is put to the maintainer. The handoff is one line on where the run stands, the occupancy
+figure it read, confirmation that the plan directory is current, and the copy-pasteable
+`/run-arc <plan directory>` line — nothing more. The next session reconciles from the plan
+directory (§4) and carries on.
 
-So: **the supervisor proposes a grouping of the arc's remaining open todos into sessions, once, at
-the very start of every session, and never reopens it inside that session.**
+- **Read before every revision, not only after a seal.** A long stretch that seals nothing — the
+  arc review above all — must not carry a session past the threshold into its next revision unread.
+  So the review-fix arc reads afresh before its first fix todo (§12).
+- **The threshold bars starting a revision, not speaking.** Past it, the supervisor may still put an
+  open question to the maintainer, record findings, do a short piece of research or a pre-plan, and
+  then hand off. None of those is a revision.
+- **Work the maintainer directs mid-session is gated by the same reading.** It starts revisions like
+  any other work. There is no size test for it: estimating a directive's size in advance is exactly
+  the guess the reading replaces.
+- **Report, do not ask, after anything known to be expensive** — a diff pulled into the supervisor's
+  own context, an escalation conversation, an environment repair. One line naming what was absorbed,
+  plus confirmation that the plan directory is current. No question attached: the next reading, not
+  a question, decides whether the session continues.
+- **Planning gets an offer, not a rule.** `plan-arc` has one cheap checkpoint, after the challenge
+  and before approval, where its directory is current by construction (§9, step 7). There it
+  *offers* to pack up, naming the same occupancy figure; the maintainer decides. Planning starts
+  no revision, so no threshold bars anything there.
 
+**Why 50%, and what it is not.** The threshold is a **capacity** bound — *a session is the unit one
+supervisor can supervise*, in the originating maintainer's framing, and *"the session is really just
+because of context limitation."* It is **not** the cost-optimal length. On a 200k-token window, 50%
+is about 100k tokens, close to where the knee above already sits. On a 1M window it is about 500k,
+far past the knee, so the largest cost lever above is deliberately left unpulled there. Say that to
+the user rather than letting the two numbers sit side by side unexplained. If they care more about
+spend than about runs that keep going, lower the threshold; the reading works the same at any
+fraction. **What 50% is in turns has not been measured.**
+
+> **Why a reading replaced an estimate.** The rule this one replaced had the supervisor propose, at
+> the start of every session, a grouping of the remaining todos into sessions against a ~54-turn
+> target, sized from signals in the plan directory. It failed twice over. The target was met in no
+> measured session — median 99 real turns, p75 143, p90 194, max 296 — and nothing in the loop
+> noticed. And an estimate made before any todo runs cannot see how the todos will go: a group
+> agreed as "six to eight todos plus the arc review" met todos that took two and three review cycles
+> each. A reading taken before each revision sees that drift at the one moment it can still act on
+> it, and it costs the maintainer no attention, because nothing is asked. **The price, accepted
+> knowingly:** an arc left to run unattended overnight now stops partway, where the old rule's
+> "absent an answer, run to the end" would have finished it.
+
+#### Reading the occupancy
+
+**A rule may not assume a measurement the harness does not offer** — it would look precise while
+quietly never firing. Two numbers look like a gauge and only one is.
+
+- **Not the token counter in the system prompt.** Where a harness exposes one, it is a session
+  *budget*: it starts far above the window size and says nothing about how full the context is.
+- **The transcript is the gauge.** Claude Code writes every session to
+  `~/.claude/projects/<encoded working directory>/<session id>.jsonl`, and each assistant turn
+  records its token usage. The newest main-thread turn's `input_tokens + cache_creation_input_tokens
+  + cache_read_input_tokens` is how full the context is now. Exclude output tokens, which the next
+  turn counts as input anyway, and exclude subagent (sidechain) turns, which have windows of their
+  own.
+
+Write this to `~/.claude/scripts/context-usage.py`:
+
+```python
+#!/usr/bin/env python3
+"""How full is this Claude Code session's context window?  Usage:
+    context-usage.py [--json] <session-id>
+Occupancy = input + cache_creation + cache_read tokens of the newest main-thread
+assistant turn in the session transcript. Output tokens are excluded (the next
+turn counts them as input); subagent (sidechain) turns are skipped (own window)."""
+import json, os, sys
+from pathlib import Path
+
+PROJECTS = Path.home() / ".claude" / "projects"
+
+def tail_lines(path, chunk=262_144):
+    # Transcripts reach hundreds of MB; the turn wanted is always near the end.
+    with path.open("rb") as fh:
+        fh.seek(0, os.SEEK_END)
+        pos, buf = fh.tell(), b""
+        while pos > 0:
+            step = min(chunk, pos); pos -= step; fh.seek(pos)
+            buf = fh.read(step) + buf
+            parts = buf.split(b"\n"); buf = parts.pop(0)
+            yield from (l for l in reversed(parts) if l.strip())
+        if buf.strip():
+            yield buf
+
+# The transcript does not record the window size, so set it to the model's.
+# Too small a value overstates occupancy (an early pack-up); too large a value
+# understates it, and a 50% threshold then never fires. Err small.
+WINDOW = 200_000
+
+def window(used):
+    return 1_000_000 if used > WINDOW else WINDOW  # past it, it was never that window
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if not args:
+        sys.exit("pass the session id: a bare run cannot tell this session from a peer's")
+    hits = list(PROJECTS.glob(f"*/{args[0]}.jsonl"))
+    if not hits:
+        sys.exit(f"no transcript for session {args[0]}")
+    for raw in tail_lines(hits[0]):
+        try:
+            rec = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue  # a partial line from a transcript still being written
+        usage = (rec.get("message") or {}).get("usage") or {}
+        if rec.get("isSidechain") or rec.get("type") != "assistant" or not usage:
+            continue
+        used = sum(usage.get(k, 0) for k in
+                   ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+        info = {"used": used, "window": window(used), "percent": round(100 * used / window(used), 1)}
+        print(json.dumps(info) if "--json" in sys.argv else f"{info['percent']}%  {used:,}/{info['window']:,}")
+        return
+    sys.exit("no usage data in transcript")
+
+main()
 ```
-Session plan for N open todos — target ~75 turns each:
-  this session   <ids>   <why: the signal behind large/small>
-  then           <ids>   <why>
-Accept, or give me your own grouping.
+
+and put this among `run-arc`'s Standing rules:
+
+```markdown
+- **A supervisor can read its own context occupancy.** Run
+  `python3 ~/.claude/scripts/context-usage.py --json "$CLAUDE_CODE_SESSION_ID"` from any shell
+  call; `percent` is the reading step (e) acts on. **Always pass your own session id.** The
+  environment variable is the harness's own and resolves from any directory; without an id there
+  is no telling this session's transcript from a peer session's in the same project.
 ```
 
-Size groups by **expected back-and-forth**, never by a flat count — a todo with four open questions
-and a todo editing one file for five clauses are not interchangeable units. Estimate weight from
-what the plan directory actually shows, so the estimate is reproducible rather than a feeling:
+**Set `WINDOW` to the user's model when you install it, and ask rather than guess.** The
+transcript records the model's id but not its window, so the script cannot tell a 200k session
+from a 1M one below 200k tokens. The default errs toward an early pack-up, which costs one fresh
+session; the opposite error is a threshold that silently never fires. If the user switches models,
+the constant moves with them.
 
-- an unresolved open question, or a spec instructing the coder to put something to the maintainer —
-  a guaranteed round trip;
-- a todo the maintainer has claimed for themselves — human coding is the highest back-and-forth there
-  is;
-- breadth: three or more files in a todo's **Files** bullet, or one file large enough that reading it
-  is itself substantial;
-- a read-in-full clause against a large section;
-- clause count — the weakest signal and the last resort.
+**In a harness that records no per-turn usage, there is no reading, and so no threshold.** Do not
+fall back to an estimated grouping — that is the rule the blockquote above retired. Say plainly
+that sessions then end at phase seams and when the maintainer says so, and that compaction is
+still not a mechanism.
 
-Record the outcome as a `- **Session plan:**` bullet in `README.md`: the agreed grouping, or `run to
-end`. Its value needs a three-way reading — a grouping, `run to end`, or **absent**, reserved for
-"the question was never posed" — so a resumed session can tell "they chose to run long" from "never
-proposed".
-
-**Absent an answer, the session runs to the end.** Never strand a run waiting on a reply that may be
-days coming. Once answered, the grouping is honoured for the rest of **that** session: at the group
-boundary **the supervisor packs up — it does not ask**, because the decision was already taken. A
-group that overran still ends where it was proposed to end; the correction happens in the *next*
-session's own grouping question, not by re-grouping mid-session.
-
-**Report, do not ask, after anything known to be expensive** — a diff pulled into the supervisor's
-own context, an escalation conversation, an environment repair. One line naming what was absorbed,
-plus confirmation that the plan directory is current. No question attached: session length was
-already decided.
-
-**Do not write a token formula.** A threshold in tokens per todo reads as precise, is invented, and
-the supervisor has no reading to compute it against. The `total_tokens` counter a harness may expose
-is a session *budget*, not a context gauge — it starts far above the window size, so a "hand off at
-50%" rule has nothing to read. **A rule may not assume a measurement the harness does not offer:** it
-would look precise while quietly never firing.
+**Do not write a token formula.** A threshold in tokens per todo reads as precise and is invented.
+A count of things that actually happened is a different kind of number and is fine; so is the
+measured occupancy above, which is a reading, not a formula.
 
 ### The Status vocabulary
 
@@ -1500,6 +1618,13 @@ land.
 **Optional layer.** See §16. If the user is not taking it, go straight to step 7.
 
 ### Step 7 — Get the finished plan approved
+
+**First, the planning checkpoint.** The plan directory is current by construction here, and the
+challenge (§16), where installed, is what makes a planning session long. If the session has run
+long, offer to pack up before the approval: one line on where the plan stands, the session's
+measured occupancy (§8), confirmation that the directory is current, and the copy-pasteable
+`/plan-arc <plan directory>` line. It **offers; the maintainer decides** — ending a planning
+session is never the planner's own call.
 
 Show the **same index summary the pre-challenge gate already showed** — the same artefact, not a
 second list — along with the gates, and get agreement **before any code runs**. This is the one
@@ -2302,7 +2427,12 @@ revision per todo.
    project. Report the list and ask the user whether to fix, defer, or replan.
 3. Set **Status** to `review-fix` and run the ordinary loop over the `fix*` todos in order. **Print
    the fix todos before you start so the user can interrupt**; you do not need their approval for
-   mechanical fixes, but they must be able to see them coming.
+   mechanical fixes, but they must be able to see them coming. Then take the occupancy reading
+   afresh before the first fix todo starts (§8): the arc review sealed nothing, so no seal has read
+   it for you. A handoff here leaves Status at `review-fix`, and resuming has to honour that:
+   `Before the loop` leaves a `review-fix` Status alone rather than resetting it to `running`, and
+   once its fix todos are done a resumed session goes straight to step 4 below, never back into
+   §11's lens fan-out.
 4. **Then you alone do the final review.** No lens fan-out this time. Walk the `review.md` list and
    confirm, finding by finding, that each `fix` is actually addressed in the sealed revisions — not
    merely that a revision mentioning it exists.
@@ -3636,6 +3766,7 @@ is not writing meta-arcs, this is dead weight — say so plainly.
   agents/<name>.md               one subagent per file
   skills/<name>/SKILL.md         one skill per directory; the directory name is the command
   skills/<name>/*.md             companion files, loaded only when SKILL.md says to read them
+  scripts/context-usage.py       the occupancy reader the session rule reads (§8)
   plans/arc-<slug>/              one directory per arc
 <project>/.claude/agents/        project-level: applies only in that project
 <project>/.claude/skills/
@@ -3702,8 +3833,12 @@ obviously right.
 - **A live subagent sends nothing until it returns.** Silence is not evidence of a stall. Do not
   re-spawn on silence alone; elapsed time past roughly twenty minutes is the only signal.
 - **The session token counter is a budget, not a context gauge.** It starts far above the window size,
-  so a rule phrased as "hand off at 50% of context" has nothing to read. **A rule may not assume a
-  measurement the harness does not offer** — it would look precise while quietly never firing.
+  so a rule phrased as "hand off at 50% of context" cannot read it. **The session transcript can be
+  read instead:** every assistant turn records its token usage, and §8's occupancy reader takes the
+  figure from there. It needs the session's own id, which Claude Code exposes as
+  `$CLAUDE_CODE_SESSION_ID`, and a window size the transcript does not record. **A rule may not
+  assume a measurement the harness does not offer** — it would look precise while quietly never
+  firing — so check the reading exists in the user's harness before installing a rule built on it.
 
 ---
 
@@ -3805,7 +3940,7 @@ accept "the usual" — get the exact strings.
   tool hashes its flags into its plan, a flag one gate passes and the other omits makes each
   invalidate the other's cache, and every run recompiles from scratch.
 - **Ask how long they take.** A gate over ten minutes means the background form in step (d) is the
-  normal path, not the exception, and it changes the session-grouping conversation.
+  normal path, not the exception.
 
 **What a correct gate line looks like.** Three common shapes, offered as patterns to recognise rather
 than defaults to copy — the flag set has to be whatever this repo's CI actually enforces, and the two
@@ -3906,6 +4041,9 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
 
 ### Also settle, in one line each
 
+- **What the system is for, in their own words.** The top of this file gives the originating
+  maintainer's answer. Ask for the user's, and write it down where a judging agent will read it
+  (§25's `OBJECTIVES.md`), quoted rather than paraphrased.
 - **A commit-message convention?** One is worth recommending: a trailer on every commit, after a
   blank line, naming the model that assisted.
 
@@ -3985,11 +4123,14 @@ Said plainly, because an adopting user is better served by knowing which parts e
   phase and the supervisor then walked the scenarios itself — which is precisely the failure the
   "check the app is up *before the loop*" rule was added to prevent. The brief is good; the evidence
   that it gets used is thin, and the rule that makes it reachable matters more than the brief does.
-- **Session grouping by expected back-and-forth (§8)** is the most valuable idea here and the least
-  reliably followed. The same corpus that produced the ~54-turn target ran a median of **99** real
-  turns per session against it, p90 194, max 296. **Install the rule, and expect it to be ignored
-  unless something makes the boundary concrete** — which is why the rule says the supervisor *packs
-  up* at the boundary rather than *asking* whether to.
+- **The session rule (§8) is the least proven rule that governs every run.** Its predecessor, a
+  session grouping estimated against a ~54-turn target, ran a median of **99** real turns per
+  session against that target, p90 194, max 296, and was retired for a measured reading. The reading
+  itself is known to work: in the first run held to it, every handoff and progress report named an
+  occupancy figure, no grouping was proposed, and the first review-fix todo was preceded by a fresh
+  reading. **What has not yet been seen is the threshold being crossed**: that run peaked at 36.5% of
+  a 1M window, so no session has yet packed up on it. Install it, keep its *pack up, do not ask*
+  shape, and tell the user the one part still waiting on evidence.
 - **Nine-agent fan-outs (§16)** are easy to install and hard to justify without the two counts at the
   top of `review.md`. If the user takes the challenge phase, insist on those counts. **A phase nobody
   measures is a phase nobody can cancel.**
@@ -4104,7 +4245,10 @@ Work through this with the user. Tick each line out loud.
       index summary rather than a second list.
 - [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
       places that append to an index afterwards (§12, §14).
-- [ ] The session-grouping question (§8) is in `run-arc`'s preamble.
+- [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no
+      new revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written,
+      its `WINDOW` set to the user's model, and run once with `"$CLAUDE_CODE_SESSION_ID"` to show it
+      returns a figure. No session-grouping question appears anywhere.
 
 **Optional — only what the user chose**
 
