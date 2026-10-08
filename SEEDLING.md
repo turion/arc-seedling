@@ -168,7 +168,8 @@ often lost in adaptation:
 ## 3. The plan directory (Core)
 
 The plan directory is the arc. It lives **outside the repository under work** — typically
-`~/.claude/plans/arc-<slug>/` — so that planning churn never appears in the repo's own history, and
+`~/.claude/plans/arc-<slug>/`, or `plans/journey-<slug>/` once journeys (§8) are installed — so
+that planning churn never appears in the repo's own history, and
 so that a plan survives a branch being deleted.
 
 > **Consequence to state to the user:** the plan directory is not tracked by the repo it documents.
@@ -1387,7 +1388,10 @@ from `planning`, at step 5's pre-challenge gate (§9).
 - **`review-fix` → `accept`**: the code is finished and the agents have no findings left. The run is
   now waiting on the maintainer's own testing, not on any agent.
 - **`accept` → `done`**: **the maintainer said so.** Nothing else moves Status here — not a clean
-  gate, not an agent's opinion, not another lens pass.
+  gate, not an agent's opinion, not another lens pass. **One exception, and only where watch orders
+  (§21) and the observation store (§19) are both installed:** a meta-arc is closed by the session
+  holding the store's role once its watch order's evidence is in, because for a meta-arc there is
+  nothing for the maintainer to test (§21). Every other arc is the maintainer's word alone.
 
 The vocabulary is **cyclic, not terminal**: findings from the maintainer's testing open a test round,
 and a round that *produces todos* returns Status to `ready`, where `running` picks them up like any
@@ -1428,6 +1432,119 @@ N` section in the index.
 **`research/` holds what a todo should not have to carry.** Long background — a triage report, a
 prior investigation, anything that would make every reader of a todo pay for material only one of
 them needs. A todo's **Spec** links to it; an agent opens it only if the todo tells it to.
+
+### Journeys: a body of work bigger than one arc
+
+**Optional, though it lives here, because it is a shape of the plan directory.** It edits all three
+skills — `plan-arc`'s step 2 and step 5, the argument handling at the top of `run-arc` and
+`test-arc`, and the lens briefs — and adds no file of its own. Offer it to a user whose work
+regularly outgrows one arc. Everyone else can skip it: a single arc works exactly as §3 describes.
+
+**The problem it solves.** An arc is sized by what one planning session can decompose and research.
+Some work is bigger than that. Without a unit above the arc, it is either crammed into one huge plan
+— the originating system had an 82-todo arc — or scattered across plan directories with nothing
+binding them, so each new arc starts cold and re-asks what an earlier one already settled.
+
+**The units, each bounded by its own property, never by a size.** This is the frame the originating
+maintainer settled on, and the reason no rule here says "an arc is at most N todos":
+
+- a **journey** is *describable* — one initial prompt sets it, at whatever length that takes, and its
+  meaning does not change over its course; a day to several weeks;
+- an **arc** is *plannable and researchable* — what `plan-arc` decomposes; discovering substantial
+  new research is the signal that a new arc has begun; roughly a week;
+- a **pull request** is *deliverable and reviewable* — today, one arc is one pull request (§24 Q6);
+- a **session** is *supervisable* — it ends on the occupancy reading (§8);
+- a **revision** is *sealable, buildable, codeable* — about an hour.
+
+The durations are calibration, not limits.
+
+**The layout.** Once journeys are installed, step 5 writes every new piece of work to
+`plans/journey-<slug>/`. **A journey of one arc stays flat:** that one directory is the journey and
+the arc at once, laid out exactly as above, with one addition — the journey's **initial prompt,
+verbatim**, in a section of its own in `README.md`. It carries no second Status. So a one-arc journey
+costs nothing over a plain arc directory. Arc directories written before journeys were installed,
+`plans/arc-<slug>/`, are flat one-arc journeys without a prompt: every skill keeps accepting them,
+and nothing migrates them. Pick a slug that neither shape already uses.
+
+Only when a second arc is planned does a journey **grow `arcs/`**:
+
+```
+journey-<slug>/
+  README.md              the initial prompt, a Status of embarked | over, the ## The arcs list
+  decisions.md           decisions spanning arcs; opens with a pointer into arc 1's own
+  research/<name>.md     background spanning arcs
+  arcs/01-<slug>/        arc 1, moved here whole and unchanged — every relative link still works
+  arcs/02-<slug>/        the new arc, a complete plan directory of its own
+```
+
+Promotion is mechanical. Move the whole of arc 1 down, unchanged, and add one line to its header,
+a `- **Journey:**` bullet linking up. Arc 1 keeps its own copy of the initial prompt, because it was
+written to stand alone. Write the root `README.md` fresh. In `## The arcs`, an entry linking to its
+directory is a **planned** arc, and an entry without a link is **provisional**, a later arc not yet
+planned. The journey's own Status is deliberately light: `embarked`, or `over` once every arc is
+done, with nothing hanging off either. Every arc keeps the full vocabulary above.
+
+**What makes a directory an arc:** a `README.md` with a `todos/` directory beside it. **Never** the
+presence of a House rules section, because a nested journey's README carries House rules its arcs
+share — a skill that searched for House rules would pick up the journey README as a plan to run.
+
+**A journey's current arc is derived, never stored.** An arc at `accept`, `done` or `aborted` is
+**settled for routing**: nothing has more work to do on it unprompted. A flat journey's current arc
+is itself, unless settled. A nested journey's is the first planned entry in `## The arcs` that is not
+settled. That `accept` counts as settled is deliberate: an arc waiting on the maintainer's testing,
+or parked on a watch order (§21), must not block the next arc. This is routing only, and moves no
+Status.
+
+**So the maintainer can name a journey instead of an arc:**
+
+- `/plan-arc <journey>` plans the next arc when there is no current one, and resumes the current
+  one if it is still at `planning`. If the current arc is further along, it hands back that arc's
+  `/run-arc` line and plans nothing. If the current arc stopped at `needs-human`, it hands back both
+  that arc's `/plan-arc` and `/run-arc` lines and does neither — an arc that stopped may never have
+  been approved.
+- `/run-arc <journey>` runs the current arc if it is at `ready` or later, and names it in its first
+  line. **It never runs an arc still at `planning` or stopped at `needs-human` because a journey was
+  named** — naming a journey is a vaguer request than naming an arc, and running an unapproved plan
+  on its strength would turn a routing convenience into an approval. It hands back the right lines
+  instead.
+- `/test-arc <journey>` resolves to the arc waiting at `accept`, never to the current arc. When
+  several are waiting, it lists them and asks.
+- With no argument, `run-arc` and `test-arc` search for arc directories at both depths, by the test
+  above.
+
+**Later arcs do not start cold.** Before the pre-plan for arc N ≥ 2, the planner reads three things:
+the journey `README.md`, the journey `decisions.md`, and the file listing of the journey's
+`research/`. It opens a finished arc's own directory only where one of those points into it.
+Anything the journey's `decisions.md` already settles is not re-asked when the story is settled. A
+decision about one arc's decomposition goes in that arc's `decisions.md`; one that spans arcs goes
+in the journey's.
+
+**The journey README is the file read most, so it stays short.** Each time a next arc is planned,
+every settled arc's entry in `## The arcs` shrinks to one line and its link. The arc's own directory
+already holds the detail, so nothing is lost. Anything a later arc still needs moves to the journey's
+`decisions.md` or `research/`, and is never deleted. In the originating maintainer's words,
+*"compression and continuity are the same requirement here."*
+
+**Wherever an arc's name becomes a file or workspace name, use its arc id.** Every journey has an
+arc `01-…`, so a bare directory name would collide across journeys. The arc id is `<slug>` for a
+flat directory and `<journey slug>-<N>-<slug>` for a nested arc. Watch-order observation files
+(§21) and concurrency workspaces (§18) are the two places this bites.
+
+**Lenses judging a nested arc are given the journey README's path as well** (§11, §16), since a lens
+handed only the arc directory cannot know it exists. **One lens invocation covers one arc
+directory**: a finding's `todo <N>` is ambiguous the moment two directories each number their own
+todos.
+
+**When is a journey over?** When the last of its arcs reaches `done`, and that is **not the
+last-listed arc**: arcs close out of order, because a meta-arc can park at `accept` on its watch order
+while a later one closes first. So whoever writes an arc's `done` checks every other entry at that
+moment, and writes the journey's `over` in the same edit only when every other entry is already
+`done` or `aborted` and none is still provisional.
+
+> **What it costs.** In the originating system this grew `plan-arc` by about 13% and `run-arc` by
+> about 6%, for an event — a second arc, a promotion, an `over` — that is rare next to an ordinary
+> run, and every skill reads the routing rules on every invocation. That is the honest case for
+> leaving it out until the user has work that needs it.
 
 ---
 
@@ -2015,6 +2132,7 @@ you just spent.
 Each brief is short, because each agent reads the plan itself:
 
 - the absolute plan directory path
+- for an arc inside a journey (§8, *Journeys*), the journey `README.md`'s absolute path as well
 - the base revision and the cumulative-diff command, **verbatim**
 - the gates, and the fact that they have already passed on every revision — no reviewer runs a build
 - **which todos took a review cycle, and why. Only you know this.** A todo the coder got wrong twice
@@ -2497,7 +2615,8 @@ costs one planning pass and one loop, and nothing is published until they are sa
 **This phase ends the session.** This conversation has nothing left in it that the next one needs.
 
 **Only the maintainer's word moves Status from `accept` to `done`.** Nothing else does — not a clean
-gate, not another lens pass, not your own read of the diff.
+gate, not another lens pass, not your own read of the diff. (The one exception is a meta-arc's close
+by the store's role, §21, which runs on its own evidence and never on any of those three.)
 
 > **Want another round rather than dread it.** A defect named now, while the diff is still in
 > everyone's context, is a fix todo. The same defect named in a week is a fresh investigation of code
@@ -2540,7 +2659,8 @@ argument-hint: "[plan directory] [findings]"
 The maintainer invokes this with findings — pasted into the conversation, or already in a file under
 the plan directory. If the plan directory is not named, find the most recently updated one whose
 **Status** is `accept` and **confirm it before doing anything else** — guessing wrong here means
-triaging findings against the wrong arc.
+triaging findings against the wrong arc. Where journeys are installed (§8), search arc directories
+at both depths, and resolve a journey argument to its arc at `accept`, not to its current arc.
 
 **Do not re-derive the repo contract.** House rules — both gates and any arc-specific scope fences —
 and the **Value** bullet carry over unchanged from planning. Do not re-detect the VCS, re-run the
@@ -2784,8 +2904,10 @@ the only thing anywhere that can falsify the phase's worth.
 **a. Fan out all three lenses in one message.** State the expected cost before the first spawn —
 count the nested subagents, not just the lenses. Keep each brief short: the plan directory's absolute
 path, the repo path, the two gates verbatim, and the one thing only the planner knows — **which parts
-of the plan rest on a judgement made alone and which the maintainer settled.** **Do not summarise the
-plan for them; your summary is the thing most likely to hide the defect it exists to catch.**
+of the plan rest on a judgement made alone and which the maintainer settled.** For an arc inside a
+journey (§8, *Journeys*), add the journey `README.md`'s path, and fan out once per arc directory.
+**Do not summarise the plan for them; your summary is the thing most likely to hide the defect it
+exists to catch.**
 
 **b. Merge, triage, and write the round.** Sort every finding into the same three buckets the arc
 review uses — **fix**, **note**, **ask** — one triage vocabulary in the design rather than two. Where
@@ -3649,6 +3771,14 @@ learns to skip is worse than no line, because it also buries the handoffs where 
 **Report where the store stands, and nothing more.** No verdict on whether it is time for a
 system-improvement arc, and no recommendation that one follow — that is the maintainer's decision.
 
+**Who holds the role, and its one authority.** Any main-loop session running in the repository
+that holds the system's own files — the one where this store lives — holds the role: a test of the
+session's place, not an identity it has to be handed. A subagent never does, and neither does a
+session in any other repository; those carry a finding to the maintainer at their handoff instead.
+Proposing a system-improvement arc is as far as the role reaches for *starting* one. **Closing one
+is the role's, though**, where watch orders (§21) are installed: see §21 for when it closes a
+meta-arc and what the close writes.
+
 ---
 
 ## 20. The citation gate
@@ -3723,6 +3853,9 @@ observing.** The check scans for parked orders, excludes the arc this session is
 never observes itself), decides **whether this session actually ran under the rules the order names**
 — the honest test is whether they were *in force during this session*, not whether the files exist on
 disk — writes a **facts-only** observation, and prints **one line, never omitted, whatever it found.**
+Where journeys are installed (§8), the scan reaches arcs nested in a journey as well as top-level
+ones, the self-exclusion compares arc **directories** rather than names, and the observation's
+filename carries the observing arc's **id**, since two journeys' arcs `01-…` share a name.
 
 > **Why facts only, with no verdict.** An agent judging the rules it just ran under, with nobody
 > between it and the plan, is exactly what the maintainer's acceptance gate exists to prevent.
@@ -3739,8 +3872,32 @@ duration.
 
 **Answered and closed are different**, and conflating them is how a parked arc either never gets its
 second look or collects observations forever. A phase is **answered** when every bullet on its fired
-list is recorded as observed, not observed, or not applicable. It is **closed** only when the
-maintainer moves Status to `done`.
+list is recorded as *observed* or *not observed*. A bullet only a downstream meta-arc could show,
+recorded *not applicable* by an ordinary arc, leaves the phase open for one that can. It is
+**closed** when Status moves to `done`.
+
+**Who closes it.** Without the observation store (§19), the maintainer, by their word, as for any
+arc. **With the store installed, the session holding its role closes a meta-arc itself**, once the
+evidence is in, and the maintainer's word still always works. The reason is specific to meta-arcs:
+their todos are instructions nothing in their own diff can exercise, so `accept` and `done` differ by
+nothing the maintainer can perform, and leaving the write to them left arcs parked indefinitely on a
+decision they had no basis to weigh. Every other arc stays the maintainer's to close, because only
+their testing makes that `done` mean something. The close runs at any handoff's watch-order check, or
+whenever the maintainer asks.
+
+- **Enough evidence:** every phase the order names is answered. A bullet recorded *not applicable*
+  counts toward that only when **no repository the maintainer actually runs arcs in has the shape
+  the bullet needs** — read from the plan directories' `- **Repo:**` bullets, not from memory. Where
+  such a repository exists, the evidence is pending and the arc waits. **A missing event is not a
+  missing shape:** a bullet waiting on something that has simply not happened yet — a threshold no
+  session has crossed — stays pending.
+- **Two exits, both writing `done`, never anything else.** *Works*: every bullet observed, or
+  allowably not applicable — the arc's Status bullet names the observation that answered each phase.
+  *Needs rework*: any bullet recorded *not observed* — the Status bullet names those bullets, a new
+  entry goes into the store saying what needs reworking, and the maintainer is told in the same
+  message. The rework is a new meta-arc; the closed one is never reopened. Either way the Status
+  bullet also names the repositories checked, so a later reader can audit which silences were
+  allowed to count.
 
 **What it costs.** A section in some plans, a check at every handoff of every arc, and arcs that sit
 at `accept` for days or weeks waiting to be answered. **An arc parked at `accept` is the mechanism
@@ -4263,7 +4420,12 @@ Work through this with the user. Tick each line out loud.
       agents, and only on a workspace-capable VCS. Quote §18's costs **and** its objective together.
 - [ ] Observations store: the protocol file, and the `FINDING:` line added to every brief.
 - [ ] Citation gate: only for a prose corpus.
-- [ ] Watch orders: only if the user writes agent instructions as a deliverable.
+- [ ] Watch orders: only if the user writes agent instructions as a deliverable. With the
+      observations store also installed, the store's role closes a meta-arc on evidence (§21), and
+      every other arc is still closed by the maintainer's word alone.
+- [ ] Journeys (§8): only for a user whose work regularly outgrows one arc. Every skill tells an arc
+      directory by its `todos/`, never by a House rules section; a journey argument never runs an
+      arc at `planning` or `needs-human`; observation files and workspaces are named by arc id.
 
 **Finally, tell the user three things:**
 
