@@ -40,16 +40,11 @@ you recommend anything.
 
 ## If you are updating `SEEDLING.md` itself
 
-**Every closed meta-arc on the originating system produces a new revision of that file**, and the
-reason is an adopter who already runs an earlier revision: they update their own setup **from the
-diff** rather than re-reading several thousand lines to find what moved. A revision that changes
-nothing an adopter must act on still gets an entry saying so.
-
-Record it in `CHANGELOG.md`, never in `SEEDLING.md`: bump the version line at the top of that file
-and put the new entry above the others, newest first. One bullet each: the version, the date, one
-sentence on what the revision is, then only what an adopter has to *do*. A changelog nobody can scan
-is not a changelog, and the moment an entry starts narrating the arc that produced it, nobody scans
-it.
+**Record a new version in `CHANGELOG.md`, never in `SEEDLING.md`:** bump the version line at the top
+of that file and put the new entry above the others, newest first. One bullet each: the version, the
+date, one sentence on what the revision is, then only what an adopter has to *do*. A changelog
+nobody can scan is not a changelog, and the moment an entry starts narrating the arc that produced
+it, nobody scans it.
 
 ```
 - **vN** — <date> — <one sentence on what this revision is>.
