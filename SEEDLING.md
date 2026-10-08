@@ -24,9 +24,9 @@ corpus, missing this sentence, recommended deleting exactly the mechanism that s
 **Ask the user what the system is for, in their own words, before installing anything**, and offer
 to write the answer down (§25's `OBJECTIVES.md`) where a judging agent will read it.
 
-**If you are a human reading this.** Point a coding agent with file access to your machine — Claude
-Code or a similar harness — at this repository and say: *"Read this and set up the Core layer for
-me, then tell me what the Standard and Optional layers would add."* It will interview you (six
+**If you are a human reading this.** Point a coding agent with file access to your machine — any
+harness that can spawn subagents — at this repository and say: *"Read this and set up the Core layer
+for me, then tell me what the Standard and Optional layers would add."* It will interview you (six
 questions, §24), write about four files, and explain each one. If you would rather read first: §1 is
 the problem it solves, §2 is the five-minute version, §25 is the honest account of which parts are
 proven and which are not.
@@ -68,14 +68,24 @@ should mean. **The supervisor** means the agent session driving a run. **A subag
 disposable agent spawned with its own context, which returns a short structured block and is then
 thrown away.
 
+**The harness.** The system needs a coding-agent harness that can do two things: spawn a subagent
+with its own context, a brief and a restricted tool set; and load a named procedure — a skill, a
+command, a prompt file — when the user asks for it. It assumes no particular harness and no
+particular model vendor. Where a mechanism has to be spelt out concretely — file paths, frontmatter
+keys, model tiers, tool names, environment variables, transcript formats — this file spells it the
+way **Claude Code** does, because that is the harness it was extracted from, and says so. Read every
+such spelling as one worked example and map it to the user's harness (§5's portability note, §22).
+**`<home>/` stands for the harness's user-level configuration directory** — `~/.claude/` in Claude
+Code.
+
 ---
 
 ## 0. How to use this file
 
 **The procedure is in `AGENTS.md`, beside this file** — what to read in what order, what to install
 by default, and the honesty warning to read before recommending anything. It is kept there rather
-than here because an agent working in this repository is handed that file automatically, and because
-a procedure stated twice is a procedure that drifts.
+than here because many harnesses hand an agent working in this repository that file automatically,
+and because a procedure stated twice is a procedure that drifts.
 
 What follows is the system: Part I is the irreducible core, Part II the phases most adopters will
 want, Part III the pieces that have to earn their place one at a time, and Part IV the mechanics,
@@ -168,7 +178,7 @@ often lost in adaptation:
 ## 3. The plan directory (Core)
 
 The plan directory is the arc. It lives **outside the repository under work** — typically
-`~/.claude/plans/arc-<slug>/`, or `plans/journey-<slug>/` once journeys (§8) are installed — so
+`<home>/plans/arc-<slug>/`, or `plans/journey-<slug>/` once journeys (§8) are installed — so
 that planning churn never appears in the repo's own history, and
 so that a plan survives a branch being deleted.
 
@@ -238,7 +248,7 @@ would mean every status change touches two files and can leave them disagreeing.
 lives only in its own file's heading, so the whole board is read with one cheap command:
 
 ```
-rg -N -m1 '^# ' ~/.claude/plans/arc-<slug>/todos/*.md
+rg -N -m1 '^# ' <home>/plans/arc-<slug>/todos/*.md
 ```
 
 **Write the summary bullet, not a précis.** A bullet says what the todo changes for whoever uses the
@@ -256,9 +266,10 @@ edit; whoever appends a todo to the index writes its bullets then and there.
 > todos, the 90th percentile 39, the largest 82. Three bullets throughout would turn the index into
 > screenfuls exactly on the arcs with the most to catch.
 
-**Keep House rules almost empty.** Do not copy the repo's conventions into the plan directory. In
-Claude Code, the `CLAUDE.md` hierarchy is loaded into every session *and into every subagent*
-automatically, so anything written there already reaches the coder and the reviewer. Duplicating it
+**Keep House rules almost empty.** Do not copy the repo's conventions into the plan directory. A
+harness typically loads the repo's agent-instruction file hierarchy into every session *and into
+every subagent* automatically — in Claude Code, the `CLAUDE.md` hierarchy — so anything written
+there already reaches the coder and the reviewer; check that the user's harness does. Duplicating it
 creates a second copy that drifts. House rules holds exactly three kinds of thing:
 
 - **The two gates, verbatim.** They belong here because they are parameters of *this run* — the exact
@@ -534,7 +545,7 @@ each todo left at `in-progress`:
 ### Directory layout
 
 ```
-~/.claude/
+<home>/
   agents/
     arc-coder.md             a subagent definition
     arc-reviewer.md
@@ -581,12 +592,16 @@ denylist (everything except these). Prefer the denylist for a reviewer — you w
 read however it needs to, just never to write.
 
 **Tool restriction is the load-bearing part of this whole file.** A reviewer with `Edit` will fix
-rather than report, and you will have lost the independent check. Deny `Edit`, `Write` and
-`NotebookEdit` on every read-only agent, without exception.
+rather than report, and you will have lost the independent check. Deny every write tool on every
+read-only agent, without exception — in Claude Code's names, `Edit`, `Write` and `NotebookEdit`,
+which is how the briefs below spell them.
 
-**Portability note.** `model`, `effort`, `maxTurns` and `color` are Claude Code's spelling. In a
-different harness, keep the `name`/`description` pair and the tool restrictions — those are the
-semantics that matter — and map the rest to whatever that harness calls them. If the harness has no
+**Portability note.** `model`, `effort`, `maxTurns` and `color` are Claude Code's spelling, and so
+are the tool names in every `tools`/`disallowedTools` line below. The `model` values the briefs use
+— `haiku`, `sonnet`, `opus` — are Claude's three tiers, standing for *cheap*, *middle* and *most
+capable*; map them to the tiers of whatever models the user runs. In a different harness, keep the
+`name`/`description` pair and the tool restrictions — those are the semantics that matter — and map
+the rest to whatever that harness calls them. If the harness has no
 tool restriction at all, the briefs still say "you have no write tools"; that is weaker, but it is
 not nothing.
 
@@ -618,16 +633,18 @@ would actually say.
 the session to read them, and only then do they cost anything. This is the main lever for keeping a
 skill's resident cost down: everything a run does not always need goes in a companion file.
 
-**Reference a companion file by `${CLAUDE_SKILL_DIR}/NAME.md`, written in prose with the path in a
-code span — never as a markdown link.** The skill runs with its working directory inside the
-*target* repo, so a bare relative path does not resolve. Substitution into rendered markdown content
-is attested; substitution into a markdown *link target* is not, and the docs' own convention of a
-bare relative link is independently reported broken upstream.
+**Reference a companion file by the skill's own directory — in Claude Code,
+`${CLAUDE_SKILL_DIR}/NAME.md` — written in prose with the path in a code span, never as a markdown
+link.** The skill runs with its working directory inside the *target* repo, so a bare relative path
+does not resolve. Substitution into rendered markdown content is attested; substitution into a
+markdown *link target* is not, and the docs' own convention of a bare relative link is independently
+reported broken upstream.
 
-**When a skill edit takes effect.** Skill directories are watched, so an edited skill reaches the
-**next invocation**, which may be in the same session. But re-invocation **appends** the new body
-rather than replacing the old one, so a same-session re-invocation leaves both the stale and the new
-copy in context at once, competing. **After editing a skill, start a fresh session before using it.**
+**When a skill edit takes effect.** In Claude Code, skill directories are watched, so an edited
+skill reaches the **next invocation**, which may be in the same session. But re-invocation
+**appends** the new body rather than replacing the old one, so a same-session re-invocation leaves
+both the stale and the new copy in context at once, competing. **After editing a skill, start a
+fresh session before using it.**
 
 ---
 
@@ -637,7 +654,7 @@ These two files are the most portable part of the system. Write them as given; t
 tuned against real failures and most of the apparently redundant sentences are there because
 something went wrong without them.
 
-### `~/.claude/agents/arc-coder.md`
+### `<home>/agents/arc-coder.md`
 
 ````markdown
 ---
@@ -788,7 +805,7 @@ tests to run" is a useful, respectable answer; claiming a green run you did not 
 > spawn at the ~22.2k-token floor plus re-establishing state — instead of finishing in one. 150 is
 > clear of the observed max with headroom, not a bump *to* the max.
 
-### `~/.claude/agents/arc-reviewer.md` — the Core variant
+### `<home>/agents/arc-reviewer.md` — the Core variant
 
 **There are two versions of this one file, and you write exactly one of them.** Below is the **Core**
 variant: it runs the gate itself, because at Core there is no gatekeeper to run it. If the user later
@@ -944,7 +961,7 @@ NOTES: what blocked you — environment broken, permission denied, missing file,
 
 ## 7. The Core supervisor skill
 
-Write this to `~/.claude/skills/run-arc/SKILL.md`. It is a compressed version of the full procedure.
+Write this to `<home>/skills/run-arc/SKILL.md`. It is a compressed version of the full procedure.
 **§10–§13 add the Standard phases to *this same file*, by editing it — never by writing a second
 skill beside it.** The material compressed out is named in §25.
 
@@ -967,7 +984,7 @@ full diff, or a file's contents into your context when a subagent has already ju
 ## Before the loop
 
 Read the plan directory's `README.md`. If no path was given, look for the most recent directory under
-`~/.claude/plans/` holding a `README.md` with a **House rules** section, and confirm it with the user.
+`<home>/plans/` holding a `README.md` with a **House rules** section, and confirm it with the user.
 
 **Check the two gates before anything else.** Read the **Build gate** and **Test gate** lines out of
 House rules. If either is missing, reads `UNSET`, or is still a literal placeholder — `<build gate>`,
@@ -1171,7 +1188,7 @@ does not grow with the size of the job.
 *The full three-phase system. This is what most users should end up with.*
 
 > **How to install Part II: merge, never add.** Almost everything from here to §13 is an **edit to
-> the `~/.claude/skills/run-arc/SKILL.md` you already wrote in §7** — the same file, at the same
+> the `<home>/skills/run-arc/SKILL.md` you already wrote in §7** — the same file, at the same
 > path, grown in place. The only two sections that produce a *new* skill file are **§9** (`plan-arc`)
 > and **§14** (`test-arc`). The only agent file that gets *replaced* rather than added is
 > `arc-reviewer.md`, in §10.
@@ -1281,14 +1298,16 @@ quietly never firing. Two numbers look like a gauge and only one is.
 
 - **Not the token counter in the system prompt.** Where a harness exposes one, it is a session
   *budget*: it starts far above the window size and says nothing about how full the context is.
-- **The transcript is the gauge.** Claude Code writes every session to
+- **The transcript is the gauge, where the harness keeps one.** The worked example is Claude
+  Code's, which writes every session to
   `~/.claude/projects/<encoded working directory>/<session id>.jsonl`, and each assistant turn
   records its token usage. The newest main-thread turn's `input_tokens + cache_creation_input_tokens
   + cache_read_input_tokens` is how full the context is now. Exclude output tokens, which the next
   turn counts as input anyway, and exclude subagent (sidechain) turns, which have windows of their
   own.
 
-Write this to `~/.claude/scripts/context-usage.py`:
+For Claude Code, write this to `~/.claude/scripts/context-usage.py`. For another harness, write the
+same reading over its own transcript format — the rule below needs only the figure:
 
 ```python
 #!/usr/bin/env python3
@@ -1348,7 +1367,8 @@ def main():
 main()
 ```
 
-and put this among `run-arc`'s Standing rules:
+and put this among `run-arc`'s Standing rules (Claude Code's spelling of the path and the session
+id variable; substitute the user's harness's):
 
 ```markdown
 - **A supervisor can read its own context occupancy.** Run
@@ -1550,7 +1570,7 @@ moment, and writes the journey's `over` in the same edit only when every other e
 
 ## 9. The planning phase: `/plan-arc`
 
-**This section adds a new file.** Write it to `~/.claude/skills/plan-arc/SKILL.md` — a second skill
+**This section adds a new file.** Write it to `<home>/skills/plan-arc/SKILL.md` — a second skill
 alongside `run-arc`, not an edit to it. (§10–§13 are the opposite case: edits to `run-arc` itself.)
 What follows is the procedure; write it in this shape, with the frontmatter from §5.
 
@@ -1573,11 +1593,12 @@ ls -a                          # .jj? .git? AGENTS.md? CLAUDE.md? CONTRIBUTING.m
 Read the repo's agent-instruction files in full — they are where a maintainer records the rules that
 are not derivable from the code.
 
-**First, check that those rules actually load.** Claude Code reads `CLAUDE.md`, not `AGENTS.md`. A
-repo with an `AGENTS.md` and no `CLAUDE.md` importing it is one where every convention the maintainer
+**First, check that those rules actually load.** A harness reads the instruction file it was built
+to read, and no other — Claude Code, for example, reads `CLAUDE.md`, not `AGENTS.md`. A repo whose
+conventions sit in a file the harness does not read is one where every convention the maintainer
 wrote down is invisible to you and to the subagents. If you find that, say so and offer the one-line
-fix — a `CLAUDE.md` containing `@AGENTS.md` — **before planning anything.** It is worth more than the
-arc itself, and it is what lets House rules stay empty.
+fix — in Claude Code, a `CLAUDE.md` containing `@AGENTS.md` — **before planning anything.** It is
+worth more than the arc itself, and it is what lets House rules stay empty.
 
 Then establish:
 
@@ -1853,7 +1874,7 @@ returning `gate-unfinished` and a loop that keeps re-entering on `EXIT=0` would 
 neither the progress judgement nor the five-bounce cap would catch it, since neither watches a round
 that never reached a coder.
 
-### `~/.claude/agents/arc-gatekeeper.md`
+### `<home>/agents/arc-gatekeeper.md`
 
 ````markdown
 ---
@@ -1963,7 +1984,7 @@ DIAGNOSTICS: `gate-failed` only — bounded output, or the file and clause that 
 > the cheap tier defensible is that the reading stays narrow and structural and **every judgement
 > that needs the diff stays with the reviewer** — not that the task is mechanical.
 
-### `~/.claude/agents/arc-reviewer.md` — the Standard variant
+### `<home>/agents/arc-reviewer.md` — the Standard variant
 
 **This file replaces the Core variant written in §6, at the same path.** Do not keep both; do not
 write it alongside under another name. The difference is exactly one thing — at Standard the
@@ -2164,7 +2185,7 @@ Each is a complete file. Note what they share: no write tools, a bounded finding
 `clean | findings | escalate` verdict, an explicit "be willing to return clean", and a hard
 separation of concerns so the three do not report each other's findings.
 
-#### `~/.claude/agents/arc-review-what.md`
+#### `<home>/agents/arc-review-what.md`
 
 ````markdown
 ---
@@ -2254,7 +2275,7 @@ not answer it.
 and buys nothing.
 ````
 
-#### `~/.claude/agents/arc-review-how.md`
+#### `<home>/agents/arc-review-how.md`
 
 ````markdown
 ---
@@ -2341,7 +2362,7 @@ with. Almost everything in this lens is `should-fix` or `note`. `escalate` is ra
 **Be willing to return `clean`.**
 ````
 
-#### `~/.claude/agents/arc-review-why.md`
+#### `<home>/agents/arc-review-why.md`
 
 ````markdown
 ---
@@ -2639,7 +2660,7 @@ structured-question mechanism the harness offers:
 
 ## 14. The test phase: `/test-arc`
 
-**What this section touches:** it **adds** two new files — `~/.claude/skills/test-arc/SKILL.md` and
+**What this section touches:** it **adds** two new files — `<home>/skills/test-arc/SKILL.md` and
 `arc-triage.md`. This is the second and last section in Part II that creates a skill of its own; §10
 through §13 were all edits to `run-arc`.
 
@@ -2754,7 +2775,7 @@ This is a different rule from the one that stops the agents from re-reviewing th
 inside one review-fix arc. **The maintainer's test rounds are not that loop — they are how the arc
 gets tested at all — so they are never capped, only flagged.**
 
-### `~/.claude/agents/arc-triage.md`
+### `<home>/agents/arc-triage.md`
 
 ````markdown
 ---
@@ -3122,7 +3143,7 @@ dismiss a finding to stay inside it.
 to stop an agent re-reviewing its own repairs, and a maintainer overturning a dismissal is not that
 loop.
 
-### `~/.claude/agents/arc-challenge-sequence.md`
+### `<home>/agents/arc-challenge-sequence.md`
 
 ````markdown
 ---
@@ -3221,7 +3242,7 @@ the maintainer's call rather than a plan defect — state the trade-off and stop
 nothing.
 ````
 
-### `~/.claude/agents/arc-challenge-research.md`
+### `<home>/agents/arc-challenge-research.md`
 
 ````markdown
 ---
@@ -3319,7 +3340,7 @@ SUMMARY: at most three sentences
 **Be willing to return `clean`.**
 ````
 
-### `~/.claude/agents/arc-challenge-value.md`
+### `<home>/agents/arc-challenge-value.md`
 
 ````markdown
 ---
@@ -3477,7 +3498,7 @@ into **one** tester run — never two, since only one session can drive the brow
 > then go on to drive the browser and walk the scenarios personally. **That is how the supervisor's
 > context stops being flat, and it is the one thing this loop cannot afford.**
 
-### `~/.claude/agents/arc-ui-tester.md`
+### `<home>/agents/arc-ui-tester.md`
 
 ````markdown
 ---
@@ -3919,7 +3940,7 @@ is not writing meta-arcs, this is dead weight — say so plainly.
 ### What goes where
 
 ```
-~/.claude/                       user-level: applies in every project
+<home>/                          user-level: applies in every project
   agents/<name>.md               one subagent per file
   skills/<name>/SKILL.md         one skill per directory; the directory name is the command
   skills/<name>/*.md             companion files, loaded only when SKILL.md says to read them
@@ -3928,6 +3949,9 @@ is not writing meta-arcs, this is dead weight — say so plainly.
 <project>/.claude/agents/        project-level: applies only in that project
 <project>/.claude/skills/
 ```
+
+The layout is Claude Code's, with `<home>/` as `~/.claude/` and `.claude/` as the project-level
+directory. Another harness keeps the same pieces under its own names.
 
 **User-level for the arc system.** It is meant to work across repositories, and a project-level copy
 would have to be maintained in each one.
@@ -3969,8 +3993,9 @@ costs nothing until the skill tells the session to read it.
 
 ### Harness facts that change what you can write
 
-These were established by testing, not assumed. Each one forecloses a rule that otherwise looks
-obviously right.
+These were established by testing Claude Code, not assumed. Another harness may differ on any of
+them, so confirm each in the user's before relying on it. Each one forecloses a rule that otherwise
+looks obviously right.
 
 - **Agent file edits bind the next delegation, in the same session, with no restart.** A new file
   inside an existing `agents/` directory is picked up; a new `agents/` *directory* needs a restart.
@@ -4159,10 +4184,11 @@ Some do not: a documentation corpus, a configuration repo, a prose project.
   reach claims. Offer it.
 - **Small and intimately known** → skip the challenge phase. The planner's claims about the tree are
   probably right, and nine agents to confirm that is a bad trade.
-- Either way, check **whether the repo's own agent-instruction file actually loads.** A repo with an
-  `AGENTS.md` and no `CLAUDE.md` importing it is one where every convention the maintainer wrote down
-  is invisible to every agent. **Offer the one-line fix before anything else; it is worth more than
-  the first arc.**
+- Either way, check **whether the repo's own agent-instruction file actually loads.** A repo whose
+  conventions sit in a file the user's harness does not read — in Claude Code, an `AGENTS.md` with
+  no `CLAUDE.md` importing it — is one where every convention the maintainer wrote down is invisible
+  to every agent. **Offer the one-line fix before anything else; it is worth more than the first
+  arc.**
 
 ### Q5 — Does the user want the challenge phase?
 
@@ -4175,7 +4201,7 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
 
 ### Q6 — Solo or team, and where should the plan directory live?
 
-- **Solo** → plans under `~/.claude/plans/` are fine, but say the consequence out loud: **they sit
+- **Solo** → plans under `<home>/plans/` are fine, but say the consequence out loud: **they sit
   outside version control by design, so nothing is backing them up.** A lost disk loses every plan
   directory, including the one holding the durable state of a run in flight — which is the one thing
   this design says must survive a session dying. Ask whether that matters. For most people it does,
@@ -4369,15 +4395,15 @@ Work through this with the user. Tick each line out loud.
 
 **Core**
 
-- [ ] `~/.claude/agents/arc-coder.md` written (§6), with the gate-running prohibition intact.
-- [ ] `~/.claude/agents/arc-reviewer.md` written (§6) — **the Core variant, the one that runs the
+- [ ] `<home>/agents/arc-coder.md` written (§6), with the gate-running prohibition intact.
+- [ ] `<home>/agents/arc-reviewer.md` written (§6) — **the Core variant, the one that runs the
       gate itself** — with **no** `Edit`, `Write` or `NotebookEdit`.
-- [ ] `~/.claude/skills/run-arc/SKILL.md` written (§7), with the build and test gates from Q2 filled
+- [ ] `<home>/skills/run-arc/SKILL.md` written (§7), with the build and test gates from Q2 filled
       in everywhere the template says `<build gate>` / `<test gate>`. **Then grep the written file
       for `<build gate>` and `<test gate>` and confirm zero hits.** A placeholder written to disk is
       the most common silent misinstall of this system; §24 Q2 says what to do when there was no user
       to ask, and it is never to leave the placeholder.
-- [ ] `~/.claude/plans/` exists.
+- [ ] `<home>/plans/` exists.
 - [ ] `chronic` is available, or step (d) has been rewritten to use the build command's own quiet
       form.
 - [ ] The repo's agent-instruction file actually loads (Q4). If not, the one-line fix was offered.
@@ -4394,18 +4420,20 @@ Work through this with the user. Tick each line out loud.
 - [ ] `arc-review-what.md`, `arc-review-how.md`, `arc-review-why.md` written (§11).
 - [ ] `plan-arc/SKILL.md` written (§9), including the pre-plan step and the Value-bullet standard.
 - [ ] `test-arc/SKILL.md` and `arc-triage.md` written (§14).
-- [ ] There is exactly **one** `~/.claude/skills/run-arc/SKILL.md` — §10 through §13 were merged
+- [ ] There is exactly **one** `<home>/skills/run-arc/SKILL.md` — §10 through §13 were merged
       into the file §7 wrote, and no second run-arc skill exists anywhere. Check by listing
-      `~/.claude/skills/`; this failure is silent otherwise.
+      `<home>/skills/`; this failure is silent otherwise.
 - [ ] The Status vocabulary (§8) is in both skills and they agree, `aborted` included.
 - [ ] `plan-arc`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
       index summary rather than a second list.
 - [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
       places that append to an index afterwards (§12, §14).
-- [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no
-      new revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written,
-      its `WINDOW` set to the user's model, and run once with `"$CLAUDE_CODE_SESSION_ID"` to show it
-      returns a figure. No session-grouping question appears anywhere.
+- [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no new
+      revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written, its
+      `WINDOW` set to the user's model, and run once with the session's own id
+      (`"$CLAUDE_CODE_SESSION_ID"` in Claude Code) to show it returns a figure — or, in a harness
+      that records no per-turn usage, the absence of a reading said plainly (§8). No
+      session-grouping question appears anywhere.
 
 **Optional — only what the user chose**
 
