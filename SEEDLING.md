@@ -336,12 +336,17 @@ property that must hold, and say "verify by reading."
 
 ### `decisions.md`
 
-Two kinds of line only:
+Three kinds of line only:
 
 - one line per question put to the maintainer while planning, with the answer;
 - one line per alternative considered and rejected, with the reason — written for the reader most
   likely to undo it: a coder or reviewer who sees the rejected option lying around and "fixes" it
-  back in.
+  back in;
+- one **replan line** per change to the planned revision set once the plan exists — a todo added,
+  dropped, deferred or reshaped (§4's `needs-replan`; at Standard, §9's *Replanning*): what changed,
+  and why. A replan is neither a question nor a rejected alternative, and without its line a reader
+  asking why the revisions are not what the index first promised has to reconstruct it from todo
+  headings.
 
 Nothing else. Not a design document — it records what was decided, not how the software works. Not a
 transcript — a question with no real answer leaves no line. Not a second copy of the specs. Not repo
@@ -457,7 +462,11 @@ the gatekeeper adds `pass`, `gate-failed`, `gate-unfinished`; §10 gives the com
   resumed session.
 
 - **`needs-replan`** (from the coder) → stop, and propose a plan amendment. Small corrections to a
-  later todo's spec you may make yourself; a changed approach needs agreement.
+  later todo's spec you may make yourself; a changed approach needs agreement. Either way the
+  amendment is a **replan** — any change to the planned revision set — and leaves a trace: every
+  changed todo's index entry and summary bullets rewritten in the same edit, and one replan line in
+  `decisions.md` (§3). Sealed work is never replanned; a change to what a sealed revision did is a
+  new todo. (At Standard, §9's *Replanning* sizes the replan and says what checks it.)
 
 - **`blocked`** → stop and report. **One case is worth retrying before you stop:** a Core reviewer
   that returned `blocked` because the gate would not finish inside its own foreground limit. Run the
@@ -619,7 +628,7 @@ name: run-arc
 description: Execute an arc plan — get each open todo coded, gated and reviewed and seal exactly
   one revision per todo, then review the finished arc and fix what it finds. Use after /plan-arc,
   or when the user says "run the arc".
-argument-hint: "[plan path] [--only N] [--from N] [--review]"
+argument-hint: "[plan path] [--only <todo id>] [--from <todo id>] [--review]"
 ---
 ```
 
@@ -709,6 +718,12 @@ Nothing in the plan directory repeats it.
    changed region. Your job ends at a working copy plus a handover, not a green run you watched
    yourself.
 
+   **A fast gate is the exception, and is encouraged.** Everything above is about slow gates —
+   compiles and test suites. A gate that returns in seconds — a prose repo's citation checker, say,
+   or a typechecking daemon's verdict on a file you edited — you may run yourself, as often as
+   useful, before handing over, and you should. It is still not the verdict: the gatekeeper's run
+   is. A slow gate stays forbidden in every form above.
+
    **Revisit trigger.** If more than one todo in an arc comes back with a gate failure, that is
    evidence this rule costs more than it saves. Revert it to foreground-only gating.
 8. **A claim about what a tool does is either executed or marked unverified.** The dangerous case
@@ -717,8 +732,8 @@ Nothing in the plan directory repeats it.
    the thing does. Running the form you mean to *reject* is part of measuring, not an extra step.
    This covers a prescribed fix as much as a claim about current behaviour: a fix is a prediction
    about the state *after* a change, so verify it in the state it will actually run in. This never
-   authorises running the build or test gate rule 7 reserves — verify by other means: a scratch
-   copy, a narrower exploratory command, live inspection.
+   authorises running the slow build or test gate rule 7 reserves — verify by other means: a
+   scratch copy, a narrower exploratory command, live inspection.
 
    Name the exact commands you ran in `VERIFICATION`, so the reviewer can reproduce rather than
    re-derive. If you could not verify a claim, say so plainly there — disclosing a verification
@@ -730,7 +745,8 @@ Read before you write. The single most expensive failure mode in this loop is gu
 then discovering it through build errors — if you find yourself on a third build-error round trip
 about the same symbol, stop and go read the library's documentation or source instead.
 
-You still own your own correctness without running the gate yourself: read your editor diagnostics
+You still own your own correctness without running a slow gate yourself (a fast one, per rule 7,
+you should run): read your editor diagnostics
 for every file you touch, and trace by hand the call paths you changed rather than trusting that a
 build would have caught a mistake. Your handover should read like you expect the confirmation to
 pass, not like a bet.
@@ -781,13 +797,15 @@ overstated claim will be caught and will cost a whole extra cycle. Reporting "I 
 tests to run" is a useful, respectable answer; claiming a green run you did not see is not.
 ````
 
-> **Why rule 7 is absolute.** In one measured session, every coder that gated backgrounded it and
-> went idle: the five that did returned nothing usable, at 32k and 55k tokens for the two worst,
-> while the three told not to build returned a working handover in about 40 seconds for 25–28k
-> tokens each. The rule says "never run", not "never background", because backgrounding is a
-> parameter of the shell tool rather than a separate tool, so a tool denylist cannot forbid it
+> **Why rule 7 is absolute for a slow gate.** In one measured session, every coder that gated
+> backgrounded it and went idle: the five that did returned nothing usable, at 32k and 55k tokens for
+> the two worst, while the three told not to build returned a working handover in about 40 seconds
+> for 25–28k tokens each. The rule says "never run", not "never background", because backgrounding
+> is a parameter of the shell tool rather than a separate tool, so a tool denylist cannot forbid it
 > specifically — both forms are only ever an instruction, and the absolute one is harder to reason
-> around.
+> around. The measured costs are a slow gate's; the fast-gate exception came later, as the
+> originating maintainer's ruling on checks that return in seconds: *"In fact in that case they
+> should even be encouraged."*
 
 > **Name the free substitutes concretely when you install this.** Rule 7 takes the gate away from
 > the coder and points it at cheaper feedback — and that redirection only works if the cheaper
@@ -798,7 +816,8 @@ tests to run" is a useful, respectable answer; claiming a green run you did not 
 > three-build-error round trip the brief's "read before you write" paragraph warns about; `hoogle` is
 > one, and an instance can be pointed at a private package set alongside the public one. If the user
 > has neither, rule 7 still holds — the coder falls back to editor diagnostics and to reading the
-> changed region, which is what the brief already tells it to do.
+> changed region, which is what the brief already tells it to do. A daemon that answers in seconds
+> is also exactly what rule 7's fast-gate exception lets the coder run as a gate.
 
 > **Why `maxTurns: 150`.** Observed tool-call p90 across n=183 coder spawns was 100, and the max was
 > 111. At a ceiling of 100, roughly a tenth of spawns hit it and paid for a resumption — a fresh
@@ -969,7 +988,7 @@ skill beside it.** The material compressed out is named in §25.
 ---
 name: run-arc
 description: Execute an arc plan — get each open todo coded, gated and reviewed and seal exactly one revision per todo. Stops for the human on design questions. Use when the user says "run the arc" or "continue the arc".
-argument-hint: "[plan directory] [--only N] [--from N]"
+argument-hint: "[plan directory] [--only <todo id>] [--from <todo id>]"
 ---
 
 # Running an arc
@@ -1026,7 +1045,8 @@ it renders readably. Preserve that shape on every rewrite; do not collapse the b
 
 ## The loop
 
-For each todo with `status: todo`, in order (honouring `--only` / `--from`):
+For every todo with `status: todo`, in index order and whatever its id — honouring `--only` /
+`--from`, which take a todo id such as `4` (at Standard also `fix1` or `test3.2`):
 
 ### a. Coder
 
@@ -1081,9 +1101,13 @@ minutes is the signal.
   experiment, and whose experiment came back negative, arrives here and not as a `revise`:** the
   coder did what the clause asked, the plan's premise is what failed, and a `revise` would send a
   fresh coder to repair something that is not broken while hiding from the maintainer the one fact
-  the clause existed to discover.
+  the clause existed to discover. Where the answer changes the todo's spec enough that its summary
+  bullet would change, it is also a replan: leave the trace `needs-replan` below describes.
 - **`needs-replan`** → stop, and propose a plan amendment to the user. Small corrections to a later
-  todo's spec you may make yourself; a changed approach needs agreement.
+  todo's spec you may make yourself; a changed approach needs agreement. The amendment is a replan:
+  rewrite every changed todo's index entry and summary bullets in the same edit, and add one replan
+  line to `decisions.md` — what changed in the planned revision set, and why. Never replan a sealed
+  todo; a change to what it did is a new todo.
 - **`blocked`** → stop and report. One case is worth retrying first: a reviewer blocked because the
   gate would not finish inside its own foreground limit. Run the gate yourself in the background form
   from (d); on `EXIT=0`, re-enter (b) with a fresh reviewer against the now-warm build, and on
@@ -1405,6 +1429,13 @@ from `planning`, at step 5's pre-challenge gate (§9).
   of `aborted` again; it is the one terminal value besides `done`. **The plan directory stays on
   disk, readable** — the rejected decomposition is the only record anywhere that one was proposed
   and what it said.
+- **`running` / `review` / `review-fix` / `accept` → `planning`, for a large replan** (§9,
+  *Replanning*): whichever phase finds the replan large writes its mid-replan note first and moves
+  Status here, and the arc goes back to `/plan-arc`. Never beside a live run on another pull request
+  of a grouped arc.
+- **`planning` → `running` or `review-fix`, for a re-entered arc that left a run**: approval writes
+  the Status the arc left, not `ready` (§9, step 7 says which and why). Every other approval is the
+  ordinary `planning` → `ready`. No Status value records "re-entered"; it is read off the directory.
 - **`review-fix` → `accept`**: the code is finished and the agents have no findings left. The run is
   now waiting on the maintainer's own testing, not on any agent.
 - **`accept` → `done`**: **the maintainer said so.** Nothing else moves Status here — not a clean
@@ -1421,8 +1452,8 @@ from `planning`, at step 5's pre-challenge gate (§9).
 
 The vocabulary is **cyclic, not terminal**: findings from the maintainer's testing open a test round,
 and a round that *produces todos* returns Status to `ready`, where `running` picks them up like any
-other todo. A round whose findings all turn out not to be defects produces none and leaves Status at
-`accept`.
+other todo; a round the maintainer chooses to redesign returns it to `planning` (§14). A round whose
+findings all turn out not to be defects produces none and leaves Status at `accept`.
 
 ### The full plan directory layout
 
@@ -1431,22 +1462,32 @@ README.md                   header bullets, the todo index (each entry with its 
                             bullets), Context, Story, Verification, House rules
 todos/01-<slug>.md          one todo
 todos/fix1-<slug>.md        review-fix todos, written by /run-arc
-todos/test1.1-<slug>.md     test-round todos, written by /test-arc
-decisions.md                questions asked and alternatives rejected while planning
-challenge.md                challenge findings and disposition (Optional layer, §16)
+todos/test1.1-<slug>.md     test-round todos, written by /test-arc — or by a replan, when a
+                            round is judged large
+decisions.md                questions asked, alternatives rejected, and replans made, while
+                            planning or running
+challenge.md                challenge findings and disposition (Optional layer, §16) — and a
+                            small replan's scoped pass, as a `## Round N (replan)`
 review.md                   the arc review's triaged findings, written by /run-arc
 research/<name>.md          background too long for a todo: triage reports, prior investigation
 ```
 
 **Write nothing else into these files — each is owned by exactly one phase**, so it is never
-ambiguous which one may add to it:
+ambiguous which one may add to it, with one listed exception, the last bullet:
 
 - **plan** writes `README.md`, `todos/01-…`, `decisions.md`, `challenge.md`, and `research/` for an
   original todo's background.
 - **run** writes `review.md` and, if it finds anything fixable, `todos/fix1-…`, `fix2-…`, appending
   them to the index.
 - **test** writes `todos/test<N>.<k>-…`, one `research/` file per triaged finding, and appends its
-  round's questions and rejected alternatives to `decisions.md`.
+  round's questions, rejected alternatives and replan line to `decisions.md`.
+- **a replan** (§9, *Replanning*), whichever phase runs it, may for that replan create or rewrite an
+  **unsealed** todo file; add, drop, move or rewrite its index entry; append to `decisions.md` and
+  `challenge.md`; mark a `decisions.md` or `research/` entry reversed in place; and, for a large
+  replan, write the mid-replan note beneath the Status bullet and move Status to `planning`. The
+  grant is listed, not general, and sealed todos stay outside it. It exists because a replan edits a
+  plan already written, and the file's first writer is usually a session long ended: routing each
+  edit back to it would mean no edit at all.
 
 **Leaving placeholders for another phase's files only invites something to fill them in early.**
 
@@ -1454,7 +1495,11 @@ ambiguous which one may add to it:
 `fix1`, `fix2`, … continuing from the highest already present rather than restarting; test-round
 todos are `test<N>.<k>` — round `N`, todo `k` within it. Each test round gets its own `## Test round
 N` section in the index — `## Test round N (PR <k>)` in a grouped index (§8, *Grouping an arc into
-pull requests*).
+pull requests*). **Ids never decide what runs:** the loop picks every open todo in index order (§7),
+so a todo a replan adds under any id is picked up, and neither a test round nor a review-fix arc
+needs a scoping rule of its own. The originating system once scoped a test round's run to that
+round's ids, needed an exemption for the review-fix arc's, and could strand a todo written under any
+other.
 
 **`research/` holds what a todo should not have to carry.** Long background — a triage report, a
 prior investigation, anything that would make every reader of a todo pay for material only one of
@@ -1623,7 +1668,8 @@ originating system was sent ahead for a fourth reason, a defect already in front
 value lens checks each group against the two properties, never against a list (§16, where
 installed), and the sequence lens checks the build invariant per group: each group's last todo
 leaves the tree deliverable, and no todo depends on a later group. **A split is decided at planning
-time.** A prerequisite discovered mid-run is a replan, not this rule's.
+time.** A prerequisite discovered mid-run is a replan (§9, *Replanning*) — a pull request sent
+ahead inside the arc — not this rule's.
 
 **"A PR holds an open todo"** — defined once, and cited by every site that needs it (the handoff,
 every `done` write, the store's close, the pull-request summary's gate, routing): any todo of its
@@ -1950,7 +1996,21 @@ If the arc changes what a user sees or does, mention that the review phase will 
 already running, and let the user start it now. **In a project where a cold start syncs a database
 for a quarter of an hour, being told at review time is being told too late.**
 
-When approved, set `Status: ready` and **end the session here**, handing over a copy-pasteable line:
+When approved, set Status and **end the session here**. Status is `ready`, except for an arc this
+session **re-entered** with a mid-replan note (*When `/plan-arc` re-enters an arc that holds work*,
+below), where it is read off the Status the note says the arc left:
+
+- **left from `running` or `review`: `running`** — `ready` is the Status of a plan no run has
+  started, and this arc left a run in the middle: its next session has to resume it, keeping its
+  **Base revision**, so that the arc review still reads the whole arc;
+- **left from `review-fix`: `review-fix`** — the arc review already ran, and what the arc still owes
+  is the supervisor's final review (§12, step 4), which `running` would replace with a second full
+  arc review;
+- **left from `accept`: `ready`** — the test round's section is already written (§14), and `ready`
+  is where any test round's todos wait;
+- **no note: `ready`**, as for any arc.
+
+Then remove the mid-replan note, which is spent, and hand over a copy-pasteable line:
 
 ```
 /run-arc <absolute plan directory path>
@@ -1958,6 +2018,140 @@ When approved, set `Status: ready` and **end the session here**, handing over a 
 
 Say in one sentence why it should be a new session: the planning conversation is spent, and
 everything that matters is now in the directory.
+
+### Replanning
+
+**What this touches:** `plan-arc/SKILL.md` gains this subsection, and every other site that replans
+cites it instead of restating it — `run-arc`'s `needs-replan` and `design-question` branches (§4,
+§7), its review-fix arc (§12), every test round (§14), and the human coder's *this todo is wrong*
+(§18, where installed). At Core, §4's `needs-replan` carries the trace alone; this adds the sizing
+and the checks.
+
+**What it is — a characterisation, not a trigger.** Any change to the planned revision set: a todo
+added, dropped, deferred, moved, or changed so much that its summary bullet would change. It happens
+in the small and in the large — at the todo; at the pull-request split (§8), where a prerequisite
+found mid-run is a pull request sent ahead inside the arc; at the arc; and between a journey's arcs
+(§8), where material moves to the next provisional arc. The originating maintainer was explicit that
+this is a description and not a test: *"understand my definition more like a characterization than a
+sharp rule. 'any change to the planned revision set' is also a good description."* A checklist of
+triggers would be read as the set to check, and a change that fit no item would go unplanned — so
+never sharpen it into one. The phases were already replanning without the word: a `needs-replan`, a
+`design-question` answer that reshapes a spec, a review-fix arc, a test round's todos, any todo
+deferred. Each is an instance.
+
+**Sealed work is never replanned.** A change to what a sealed revision did is a new todo (§2,
+invariant 1). A replan edits only unsealed todos.
+
+**The herd scales with the replan.** Two ends, and the supervisor judges between them. There is no
+threshold, because the ruling this rests on asked for none: *"It's the supervisor's responsibility to
+pick the adequate herd of lenses, researchers … to do this, according to the size of the replan."*
+
+- **Small** — a spec corrected, a todo added, dropped or rewritten, the arc's approach unchanged.
+  Where the challenge phase (§16) is installed, spawn **one scoped challenge pass** before any coder
+  is handed an added or rewritten todo. **Default lens: `arc-challenge-research`** — a mid-run todo
+  nearly always asserts something about the tree it will be coded against, and the session that
+  wrote it, reasoning from its own paraphrase, is the worst judge of where that premise is wrong. Add
+  `arc-challenge-sequence` where the change touches order or what an earlier todo leaves behind, and
+  `arc-challenge-value` where it touches what a user gets. **Scope**, stated in the brief: the todos
+  the replan wrote or rewrote, **plus, for an added or moved todo, every unsealed todo after it**,
+  checked only for still being satisfiable on the tree the change leaves; every sealed todo is named
+  in the brief as built and context-only, never challenged. **The pass is a single fan-out**: act on
+  its `fix` findings directly, with no re-check and no progress judgement, and take what only the
+  maintainer can rule to them. **A todo the maintainer will code themselves skips the pass** (§18,
+  where installed) unless they ask for it: they co-wrote the amendment and read it as they code, and
+  waiting on a lens costs the flow §18 exists to protect. Without the challenge phase there is no
+  pass at either end; the trace below still applies.
+- **Large** — a changed approach, a re-split arc, a dropped pull request. Whichever phase finds it
+  first writes a **mid-replan note**: what the maintainer agreed, what the replan must still do, the
+  Status the arc is leaving, the working copy's state (kept or discarded — a kept one the resumed run
+  will ask about), and the findings and `research/` reports it must answer, by path; plus a
+  question-and-answer line in `decisions.md`, since the session that agreed it is about to end. The
+  note is an **indented sub-bullet beneath the Status bullet, never on the `- **Status:**` line
+  itself**: anything that reads Status by matching that line — a status-line script, a grep for
+  `running` — would read free text there as a live Status. Then Status goes to `planning` and the arc
+  returns to `/plan-arc` (*When `/plan-arc` re-enters an arc that holds work*, below), which reworks
+  the unsealed todos and runs its whole challenge phase over them, progress judgement included. A
+  `run-arc` session that agreed a large replan ends by handing back `/plan-arc <absolute plan
+  directory path>` — a phase seam (§8). **A large replan never starts beside a live run on another
+  pull request of a grouped arc** (§8): a live run is not rewound, and planning under it would touch
+  that pull request's todos and tree, so it waits for that pull request's handoff.
+
+> **Why the small end is one fan-out with no re-check.** Every review-fix arc and every test round
+> is a small replan, and holding each to the challenge phase's progress judgement would run the
+> rework-then-re-check loop that the originating system had recorded as barely progressing. A small
+> replan does not earn the whole phase; a changed approach does. **Why the small end has a pass at
+> all:** a real run shipped a review-fix todo, written by the supervisor, claiming that a revision
+> expression denoted one parent when it denoted another — the supervisor had paraphrased
+> `decisions.md` into a conclusion the maintainer never gave, and only a coder who reasoned from
+> first principles caught it.
+
+**A replan leaves a trace**, whichever phase runs it, at either end:
+
+- every changed todo's index entry and summary bullets updated in the same edit (§3);
+- one **replan line** in `decisions.md` (§3): what changed in the revision set, and why;
+- every `decisions.md` or `research/` entry the replan reverses **marked reversed in place** — coders
+  are sent to `decisions.md` as the authority, so a stale line steers them against the redesign;
+- every `## Verification` clause a dropped or deferred todo owned given a **named new owner in some
+  todo's "Done when"**, not only a re-pointed `README.md` sentence — a clause no todo owns is a
+  promise the arc review will grade and nobody was asked to keep;
+- where the challenge phase is installed, a small replan's pass recorded in `challenge.md` as a
+  `## Round N (replan)` (§16).
+
+> **Where two of those came from.** A deferred todo had owned the arc's only demonstration that a new
+> test fails without the fix; the rework re-pointed `README.md`'s Verification sentence and wrote the
+> clause into no "Done when", so no coder would have performed it and the suite would have passed
+> vacuously. And after a redesign, a `decisions.md` line still recorded the reversed choice as
+> rejected — every lens caught it a round later, but coders are sent to that file as the authority.
+
+> **Honest status.** These rules were written at the end of the arc that defined them, from the
+> failures quoted above. At extraction time they had run once, in that same arc's review-fix pass:
+> one research-lens fan-out over four fix todos found six gaps in the supervisor's own todo text — a
+> search pattern missing five dependent sites, a deletion that would have broken a registered citation
+> — none blocking; they were corrected without a re-check, and the corrected todos then passed their
+> per-todo reviews. No later arc has yet run under them.
+
+### When `/plan-arc` re-enters an arc that holds work
+
+An arc **holds work** when its directory already has a `challenge.md` with a `## Round N`, or a
+filled **Base revision** bullet — read off the disk, never from a stored flag. A large replan comes
+back to `/plan-arc` this way, whether the maintainer names the arc directory or, where journeys are
+installed, routing reaches it (§8). Without this path the procedure above reads end to end as
+*author a new arc*: in the originating system, a session handed such an arc had no rule for whether
+a recorded note was work to finish or to re-derive, nor for what number its next challenge round
+took.
+
+**Read in this order, and stop where the pointers stop** — such a directory runs large; one measured
+about 300 KB, two-thirds of it `challenge.md`:
+
+1. `README.md`'s header bullets and `## Todos` index, then the board (§3).
+2. `decisions.md`.
+3. Only the newest `## Round N` of `challenge.md`. Older rounds open only where that round or
+   `decisions.md` points into them, with one exception: the running total of fan-outs (§16, *e.*)
+   continues from the last cost line that is not a `(replan)` round's, since a `(replan)` round
+   states its own fan-outs only.
+4. `research/` only where a todo or the mid-replan note links it.
+
+- **A mid-replan note is finished, not re-derived.** Where the Status bullet carries one, or
+  `decisions.md` already says what the replan must still do, that is the work. An agreed replan
+  resumes at step 5 without a new pre-plan and skips the pre-challenge gate, unless the note says
+  otherwise: the maintainer approved the change in the session that wrote the note, and asking again
+  would cost them the same decision twice. Step 6 then runs over the unsealed todos.
+- **Sealed todos are context, never challenged**: the brief names each as built and context-only. A
+  lens briefed only on the plan directory reads a sealed todo like any open one and spends a round on
+  it — the failure §16's *d.* already closes for exited todos.
+- **Round numbering continues.** The next round is one past the highest `## Round N` in
+  `challenge.md`, `(replan)` rounds included — a derivation read off the file when the fan-out is
+  spawned (§3, *a House rule stating a fact read off a moving base*), never `## Round 1` again.
+- **From `accept`**, the round's `## Test round N` section is already written (§14). The replan's new
+  todos are that round's `test<N>.<k>` todos under it, written as `/test-arc` writes them: each
+  **Spec** cites the triage report(s) it answers, and each of the section's per-finding lines gains
+  the id(s) of the todo(s) answering it, so the round still records, finding by finding, what
+  answered what.
+- **A re-split grouped arc clears its `**PR:**` bullet** before approval (§8): the bullet names a
+  pull request by number, a re-split renumbers or drops them, and an absent bullet is a boundary,
+  which makes the next run derive it afresh.
+
+Which Status approval writes is step 7's, above.
 
 ### Scope note
 
@@ -2735,11 +2929,16 @@ revision per todo.
    does (§3). One coherent topic each, with a real "Done when" clause. **The findings are
    the spec — quote them.** One plan stays one arc. In a grouped arc (§8) they are appended at the
    end of the group whose review found them, so a fix stays inside the pull request it repairs.
+   These todos are a replan (§9, *Replanning*); step 3 runs its pass, and writing them leaves its
+   trace.
 2. **More than four fix todos means the arc was under-planned.** Do not quietly start a second
-   project. Report the list and ask the user whether to fix, defer, or replan.
-3. Set **Status** to `review-fix` and run the ordinary loop over the `fix*` todos in order. **Print
-   the fix todos before you start so the user can interrupt**; you do not need their approval for
-   mechanical fixes, but they must be able to see them coming. Then take the occupancy reading
+   project. Report the list and ask the user whether to fix, defer, or replan. A replan here is §9's
+   large end; a defer is a replan too, and leaves its trace.
+3. Set **Status** to `review-fix`. Where the challenge phase is installed, run §9's small-end pass
+   over the fix todos first, sort its findings into this section's `fix`/`note`/`ask` buckets, and
+   correct the todos for the `fix` ones. Then run the ordinary loop, which finds the `fix*` todos as
+   the open ones. **Print the fix todos before you start so the user can interrupt**; you do not
+   need their approval for mechanical fixes, but they must be able to see them coming. Then take the occupancy reading
    afresh before the first fix todo starts (§8): the arc review sealed nothing, so no seal has read
    it for you. A handoff here leaves Status at `review-fix`, and resuming has to honour that:
    `Before the loop` leaves a `review-fix` Status alone rather than resetting it to `running`, and
@@ -2894,15 +3093,19 @@ instead of having its contents retold in a todo's **Spec**.
 ### 3. One question round, or none
 
 Collect every open item from the triage reports into **exactly one** question round — never one round
-per finding. Three things feed it:
+per finding. Four things feed it:
 
 - **`question` verdicts** — the finding itself is about what the software should mean.
 - **Every report's own `OPEN QUESTIONS` field**, whatever that report's verdict. A report whose
   verdict is `spec` can still rest on a source that leaves a fact unruled, and a todo written from
   that report can depend on it.
 - **Any ambiguity you noticed yourself while reading them.**
+- **A finding that rejects the approach rather than a detail** — a large replan (§9, *Replanning*),
+  which any round may hold, not only the third; an external reviewer's requirement usually arrives
+  as a pull request's first round. Put the choice to the maintainer: **fix as usual, defer, or
+  redesign in this arc** (a redesign takes step 5's branch). A defer is a replan too.
 
-Skip the round entirely only when all three are empty; **do not manufacture a question to fill it.**
+Skip the round entirely only when all four are empty; **do not manufacture a question to fill it.**
 
 **No todo is written from a report that still carries an open item.** A partial ruling reads, at
 coding time, exactly like a complete one — so when the round rules an item, check that it ruled **the
@@ -2928,21 +3131,54 @@ Add a `## Test round N` section to `README.md`'s index listing this round's todo
 carrying its own summary bullets** the way every other index entry does (§3) — immediately followed
 by:
 
-- a **Not changed** list naming every `not-a-defect` finding and the reason its triage report gave;
+- a **Not changed** list naming every `not-a-defect` finding and the reason its triage report
+  gave, and every deferred finding as `deferred — <where it went>`;
 - a **Blocked** list naming every finding whose report still carries an open item the round did not
   rule, with that item named.
 
 **That is the destination step 3 promises a blocked finding: not a todo, but never a silent drop
-either.** Append the round's own question answers and rejected alternatives to `decisions.md`.
+either.** Append the round's own question answers, rejected alternatives and replan line to
+`decisions.md` (§3).
+
+**The round's todos are a replan** (§9, *Replanning*): once they and the index are written, and
+where the challenge phase is installed, run its small-end pass over them. The triage already read
+the code for each finding, so the pass checks the todos' premises, not the findings. A round that
+produced no todos runs no pass.
+
+**Redesign in this arc.** Where step 3's answer is a redesign, write the `## Test round N` section as
+above — **Not changed**, **Blocked**, and in a grouped arc its Round base — plus one line per finding
+the redesign is to answer, naming its triage report, and write no todos: the re-entered planner
+writes them as this round's `test<N>.<k>` todos and joins them to those lines (§9, *When `/plan-arc`
+re-enters an arc that holds work*). The redesign lands in this arc, and in a grouped arc in this
+pull request, because that is where the maintainer needs it: *"Often I need the fix in the same
+PR."*
+
+**Not beside a live run.** Where grouping is installed and this round is about an earlier pull
+request while another is under way, a redesign is **not** started (§9, *Replanning*): it becomes an
+ordinary **Blocked** line with its report path, and the handoff tells the maintainer to bring it
+back to `/test-arc` once the live pull request is at `accept` and this round's todos, if any, are
+sealed — a round is taken only on a pull request holding no open todo (§8). A pass run beside a live
+run briefs the live pull request's todos as **read-only** — never an edit target, though a lens may
+report one as invalidated, and that report goes into the handoff for the maintainer to raise in the
+live session — and tells the lens to read file contents at the earlier pull request's tip, never
+from the working directory, which is the live one's.
 
 ### 5. Hand off
 
-Set **Status** to `ready` and hand it to a new `/run-arc <absolute plan directory path>` session —
-this session has already spent its context on findings that session does not need to re-read.
+**A redesign in this arc, at `accept`:** write §9's mid-replan note, with `accept` as the Status
+left and the findings' triage reports named, and its `decisions.md` line saying which findings the
+redesign answers. Set **Status** to `planning` and hand back `/plan-arc <absolute plan directory
+path>` instead of `/run-arc`; the no-todos clause below does not apply. Where journeys are installed
+(§8), add one sentence, mentioned and not offered as a branch: once this arc is settled, the redesign
+could instead be planned as the journey's next arc.
 
-**Unless this round produced no todos at all** — every finding triaged `not-a-defect`. Then leave
-**Status** at `accept` and drop the `/run-arc` line entirely: `ready` would send a fresh session to
-an arc with nothing to run.
+Otherwise, set **Status** to `ready` and hand it to a new `/run-arc <absolute plan directory path>`
+session — this session has already spent its context on findings that session does not need to
+re-read.
+
+**Unless this round produced no todos at all** — every finding triaged `not-a-defect`; the redesign
+branch above is not this case. Then leave **Status** at `accept` and drop the `/run-arc` line
+entirely: `ready` would send a fresh session to an arc with nothing to run.
 
 ### The round cap is a signal, not a stop
 
@@ -2950,7 +3186,8 @@ Nothing caps how many test rounds an arc runs — the maintainer may test, find 
 back as many times as the arc actually needs. **But say so out loud on the third round:** three rounds
 of findings on one arc means the findings are outrunning the plan, not that the process is working
 normally. Name it, and offer the choice — fix this round as usual, defer the remaining pattern, or
-replan the underlying design — rather than quietly starting a fourth.
+redesign — rather than quietly starting a fourth. That is step 3's choice, offered here whatever the
+findings say.
 
 This is a different rule from the one that stops the agents from re-reviewing their own repairs
 inside one review-fix arc. **The maintainer's test rounds are not that loop — they are how the arc
@@ -3099,7 +3336,10 @@ know intimately. It is a phase for plans whose blast radius is uncertain.
 **How to know whether it is paying.** Open `review.md` with two counts, computed by reading
 `challenge.md` yourself: **how many of the arc review's findings a challenge finding had already
 named**, and **how many `blocking` challenge findings no arc-review finding matched.** That pair is
-the only thing anywhere that can falsify the phase's worth.
+the only thing anywhere that can falsify the phase's worth. **Both count findings of planning-phase
+rounds only, leaving out `(replan)` rounds** (below): a mid-run pass's findings were fixed before any
+coder ran, so no arc-review finding can match them, and counting them would inflate the one pair
+that can falsify the phase.
 
 ### The procedure (step 6 of the planning phase)
 
@@ -3295,6 +3535,13 @@ mechanism ever fires needs the empty case stated as plainly as a populated one.
 > whose recorded base differs from the previous round's says so, and the planner re-checks the plan's
 > own claims about the tree before triaging.**
 
+**A small replan's pass (§9, *Replanning*) is recorded here too, as a `## Round N (replan)`**, in
+the same shape and numbered on from the highest round already in the file. Its cost line states its
+own fan-outs only, never a running total, which it neither carries nor resets. The `(replan)` marker
+is what lets every reader that counts planning-phase rounds or findings leave it out — the two
+counts at the top of `review.md`, the approval block's *"Challenge: N rounds"* line, a watch order's
+round count (§21) — since without it they would overstate what planning spent and caught.
+
 **`challenge.md` is exempt from spec compression**, alongside `decisions.md` and `research/` — it is a
 record of judgement, read after the arc it belongs to is sealed.
 
@@ -3329,7 +3576,7 @@ loop.
 ````markdown
 ---
 name: arc-challenge-sequence
-description: Challenge lens run before a plan executes — can each todo in the plan directory be applied to the tree it will meet, given what earlier todos leave behind? Walks the todos in plan order, checks the every-revision-builds invariant and todo sizing, and reports blocking, should-fix or note findings. Read-only, never fixes.
+description: Challenge lens run before a plan executes — can each todo in the plan directory be applied to the tree it will meet, given what earlier todos leave behind? Walks the todos in plan order, checks the every-revision-builds invariant and todo sizing, and reports blocking, should-fix or note findings. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
 model: opus
 effort: high
 maxTurns: 60
@@ -3428,7 +3675,7 @@ nothing.
 ````markdown
 ---
 name: arc-challenge-research
-description: Challenge lens run before a plan executes — is the plan's research true? Extracts the plan's factual claims, including reach claims about its own blast radius, and tries to falsify each against the repo or the web, citing a source for every claim it accepts. Read-only, never fixes.
+description: Challenge lens run before a plan executes — is the plan's research true? Extracts the plan's factual claims, including reach claims about its own blast radius, and tries to falsify each against the repo or the web, citing a source for every claim it accepts. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
 model: sonnet
 effort: high
 maxTurns: 60
@@ -3526,7 +3773,7 @@ SUMMARY: at most three sentences
 ````markdown
 ---
 name: arc-challenge-value
-description: Challenge lens run before a plan executes — are we about to deliver something valuable to the world? Holds the plan's Value bullet to a falsifiability standard, walks concrete user interactions end to end, and checks the plan against the issue it claims to answer. Read-only, never fixes.
+description: Challenge lens run before a plan executes — are we about to deliver something valuable to the world? Holds the plan's Value bullet to a falsifiability standard, walks concrete user interactions end to end, and checks the plan against the issue it claims to answer. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
 model: opus
 effort: high
 maxTurns: 40
@@ -3856,7 +4103,9 @@ VCS with real workspaces, so on git the answer is no regardless of how the maint
 - **A return vocabulary for the human**: `finished`, `this todo is wrong`, `this needs a decision`,
   plus, in a workspace-capable VCS, `spiked` (they described their revision and stepped off it,
   leaving it half-finished for an agent to drain) and `hands up:` (their hands are off the keyboard,
-  so their working copy may be moved without being moved *under* them).
+  so their working copy may be moved without being moved *under* them). An amendment agreed after
+  `this todo is wrong` is a replan (§9, *Replanning*), and one the maintainer will code themselves
+  skips that section's scoped pass.
 
 > **Why three ways back, not one.** The maintainer is the one actor here who can tell that the *todo*
 > is wrong, and a channel that only accepts "finished" turns that discovery into a diff that fails
@@ -4656,7 +4905,8 @@ Work through this with the user. Tick each line out loud.
 
 **Core**
 
-- [ ] `<home>/agents/arc-coder.md` written (§6), with the gate-running prohibition intact.
+- [ ] `<home>/agents/arc-coder.md` written (§6), with the slow-gate prohibition intact and its
+      fast-gate exception beside it.
 - [ ] `<home>/agents/arc-reviewer.md` written (§6) — **the Core variant, the one that runs the
       gate itself** — with **no** `Edit`, `Write` or `NotebookEdit`.
 - [ ] `<home>/skills/run-arc/SKILL.md` written (§7), with the build and test gates from Q2 filled
@@ -4689,6 +4939,10 @@ Work through this with the user. Tick each line out loud.
       index summary rather than a second list.
 - [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
       places that append to an index afterwards (§12, §14).
+- [ ] Replanning (§9) is defined once, in `plan-arc`, and cited rather than restated from
+      `run-arc`'s `needs-replan` and `design-question` branches, its review-fix arc (§12) and
+      `test-arc`'s rounds (§14); `plan-arc` has its re-entry path and step 7's Status mapping; the
+      loop picks every open todo by status, never by id, and `--only` / `--from` take a todo id.
 - [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no new
       revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written, its
       `WINDOW` set to the user's model, and run once with the session's own id
@@ -4699,8 +4953,8 @@ Work through this with the user. Tick each line out loud.
 **Optional — only what the user chose**
 
 - [ ] Challenge phase: three lens briefs, step 6 of `plan-arc`, the `challenge.md` format including
-      the `exited` disposition and the empirical-exit rule (§16), **and the two counts at the top of
-      `review.md`.**
+      the `exited` disposition, the empirical-exit rule and the `(replan)` round (§16), **and the two
+      counts at the top of `review.md`**, which leave `(replan)` rounds out.
 - [ ] `OBJECTIVES.md` written (§25) if any objective of this setup is not legible from the mechanism
       — with the `OBJECTIVES` line added to whichever value lenses were installed, and the
       relay-don't-triage rule in `run-arc` (§12).
