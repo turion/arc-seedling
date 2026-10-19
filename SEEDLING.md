@@ -218,6 +218,8 @@ block is a bullet list.** Preserve that shape on every rewrite.
 
 ## Todos
 
+### PR 1 — <title> — status: planning
+
 1. [<short title>](todos/01-<slug>.md)
    - <what this todo changes for whoever uses the thing — one bullet is the default>
 2. [<short title>](todos/02-<slug>.md)
@@ -243,13 +245,50 @@ The index sits right after the header bullets because that is what you actually 
 the file. House rules stay last — they are the run's parameters, not its content.
 
 **One fact, one place.** The index is a static ordered list, one entry per todo: a link, a title and
-its summary bullets. It carries **no status and no revision id**. Duplicating those into the index
-would mean every status change touches two files and can leave them disagreeing. A todo's status
-lives only in its own file's heading, so the whole board is read with one cheap command:
+its summary bullets. It carries **no todo status and no revision id**. Duplicating those into the
+index would mean every status change touches two files and can leave them disagreeing. A todo's
+status lives only in its own file's heading, so the whole board is read with one cheap command:
 
 ```
 rg -N -m1 '^# ' <home>/plans/arc-<slug>/todos/*.md
 ```
+
+The one status the index does carry is the **pull request's**, in its own `### PR <k> — <title> —
+status: <value>` heading, and it lives nowhere else: no todo file repeats it, so it is still one fact
+in one place. Every arc has at least `### PR 1`, even where the repository has no pull requests:
+the heading is the home of the status of *the code the arc delivers*, and an arc with a status and
+no heading to hold it would be a second shape every skill had to branch on.
+
+### Two statuses: the arc's and its pull request's
+
+**A status names an activity — what is being done to the work — never who is doing it.** A human or
+an agent may write the todos, write the code or read it; the value says which of those is happening.
+
+- **A pull request's status**, in its index heading: `planning` (its todos are being written) →
+  `running` (code is still to be written for it, whether or not a session is on it now) → `accept`
+  (its code is written and is being read, and the next step decided: back to `planning` with
+  findings, or on) → `done` (merged, or the maintainer overrules — and where there is nothing to
+  merge, their word alone).
+- **The arc's status**, in the `Status` bullet: `planning` (its plan is being written) → `underway`
+  (the plan is approved; which PR is doing what is in the PR headings, not here) → `done` (every PR
+  is `done`), or `aborted`.
+
+**A stop for the maintainer is no status.** When a run stops on a question, every status stays where
+it was, and the question is recorded where it was asked — a todo's own file, at Core — so a resumed
+session finds it there.
+
+At Core, with no planning skill, approving the hand-written plan is the maintainer's word, and it
+writes the arc `underway` and PR 1 `running` (§7 does it if they have not). The loop writes `accept`
+when PR 1 has no open todo left; the maintainer's *finished* writes PR 1 and the arc `done`. Standard
+adds who writes each transition at every other moment (§8, *The Status vocabulary*).
+
+> **Why per activity, not per actor.** The originating system's arc carried one status bullet with
+> nine values, three of which failed in use: one meant both "the challenge stalled on an unapproved
+> plan" and "the run stopped", and routing read it as a run state, handing a plan nobody had
+> approved to the run phase; another — "the review is done, the fix pass is running" — made a
+> resumed session re-run a finished review. And an arc split into several pull requests ran its
+> run-side values once per PR, so one bullet carried several PRs' states. The maintainer's framing:
+> group statuses by the activity, not by who performs it, and give each pull request its own.
 
 **Write the summary bullet, not a précis.** A bullet says what the todo changes for whoever uses the
 thing — the register of the arc's own `Value` bullet, one todo at a time. It is **not** a précis of
@@ -311,7 +350,9 @@ The status stays in the heading rather than moving into the bullets — it is wh
 you open the file, and headings are what a document outline shows.
 
 **Statuses:** `todo` → `in-progress` → `done`, plus `design-question` when the loop stopped for the
-human. (Standard adds `human-coding`; see §18.)
+human. (Standard adds `human-coding`; see §18.) A heading may also read `deferred`, `dropped` or
+`superseded` after a replan; **none of those is open work**, so a PR whose only unsealed todos carry
+them holds no open todo (§4).
 
 ### Writing "Done when" as the reviewer's standard
 
@@ -520,7 +561,13 @@ Rewrite that todo's own file — **and nothing else**:
 
 **This rewrite is the durable state of the run. It is what replaces compaction. Do it every time,
 before starting the next todo.** Leave `README.md`'s index alone — it changes only when a todo is
-*added*, never when one changes status.
+*added* or a **PR's** status changes, never when a todo changes status.
+
+**When the loop exits with no open todo left in the PR, write its heading `accept`.** A PR **holds an
+open todo** while any of its todos is unsealed, counting every todo appended to it later, and not
+counting one whose heading reads `deferred`, `dropped` or `superseded` (§3). The write is tied to the
+exit, not to the last seal: a session cut off between the last seal and this write resumes with the
+PR at `running` and nothing open, takes the exit at once, and writes `accept` then.
 
 Then print exactly one line:
 
@@ -533,9 +580,15 @@ second copy of the same state only drifts.
 
 ### Resuming an interrupted run
 
+**First, list every open question to the maintainer** — every todo whose heading reads
+`design-question`, with the question from its own file — and take the answer where the question is
+written, before choosing the next todo. A stop changed no status, so this is the only way a resumed
+session learns it stopped; the loop picks up only `status: todo`, and would skip such a todo without
+a word.
+
 A session can die between sealing a revision and recording it. The loop only picks up `status:
-todo`, so a stale `in-progress` todo would be silently skipped forever. Before anything else, for
-each todo left at `in-progress`:
+todo`, so a stale `in-progress` todo would be silently skipped forever. So, still before choosing a
+todo, for each todo left at `in-progress`:
 
 - **Look for a sealed revision since Base revision that no todo records.** If exactly one exists and
   plausibly matches, the work was sealed and only step (e) never ran: mark the todo `done`, fill in
@@ -1024,9 +1077,28 @@ Preflight the working copy:
   someone's work into a revision. Then, if `@` has a description, run `jj new` so you start on an
   empty revision, and record the parent in **Base revision**.
 
-**Resuming a plan whose Status is already `running`:** reconcile any todo left at `status:
-in-progress` before doing anything else. The loop only picks up `status: todo`, so a stale
-`in-progress` todo would be silently skipped forever.
+**Read the two statuses** (`README.md`'s **Status** bullet, and the `### PR 1 — <title> — status:
+<value>` heading in its index). A status names an activity; a stop for the user is no status.
+
+- **The arc is still `planning`.** The plan has not been approved. Ask the user whether it is; on
+  their yes, write the arc `underway` and the PR heading `running`, and go on. Never run an
+  unapproved plan on the strength of having been invoked.
+- **The PR is `planning` in an approved arc.** The user's findings were being written into todos
+  (*After the loop*, below) when a session ended. Finish writing them with the user, write the
+  heading `running`, and go on.
+- **The PR is `accept`.** Its code is written; there is no loop to run. Tell the user it is waiting
+  on their reading (*After the loop*, below), and stop.
+- **The PR is `done`.** Say so, and stop.
+- **The PR is `running`.** Go on.
+
+**An open question is listed before any work is chosen.** A todo whose heading reads
+`design-question` holds a question the user has not yet answered, in its own file. List every such
+question to them, one line each, and take the answer into that file (step c) before choosing the
+next todo — the loop picks up only `status: todo` and would otherwise skip it without a word.
+
+**Resuming a PR at `running`:** reconcile any todo left at `status: in-progress` before choosing a
+todo. The loop only picks up `status: todo`, so a stale `in-progress` todo would be silently skipped
+forever.
 
 - Look for a sealed revision since **Base revision** that is not recorded as any todo's **Revision**
   bullet. If exactly one exists and plausibly matches, the work was sealed and only the recording
@@ -1037,7 +1109,8 @@ in-progress` before doing anything else. The loop only picks up `status: todo`, 
   todo to `todo`.
 - If no such revision exists and the working copy is dirty, the rule above already stops and asks.
 
-Set the **Status** bullet in `README.md` to `running`.
+**Starting a run sets no status.** Approval already wrote the arc `underway` and the PR `running`;
+both stay as they are until the loop's exit.
 
 Metadata — `README.md`'s header bullets and each todo file's own bullets — lives in bullet lists so
 it renders readably. Preserve that shape on every rewrite; do not collapse the bullets back into bare
@@ -1046,7 +1119,9 @@ it renders readably. Preserve that shape on every rewrite; do not collapse the b
 ## The loop
 
 For every todo with `status: todo`, in index order and whatever its id — honouring `--only` /
-`--from`, which take a todo id such as `4` (at Standard also `fix1` or `test3.2`):
+`--from`, which take a todo id such as `4` (at Standard also `fix1` or `test3.2`). **The loop exits
+when the PR holds no open todo**: none of its todos is unsealed, a `deferred`, `dropped` or
+`superseded` heading not counting as open.
 
 ### a. Coder
 
@@ -1153,10 +1228,15 @@ when** checkboxes the reviewer confirmed as met, fill in the **Revision** bullet
 seal above, and write a **handover paragraph** — a few sentences the next coder needs to know: what
 now exists, what it is called, anything surprising. This rewrite is the durable state of the run. It
 is what replaces compaction, so do it every time, before starting the next todo. `README.md`'s index
-is a static list of links and titles — leave it alone here.
+is a static list of links and titles — leave it alone here, except for the one write below.
 
 If this todo took more than one review cycle, also note in the handover how many and, briefly, what
 each `revise` found. Skip this for the common case of first-cycle approval.
+
+**When the loop exits with no open todo left, write the PR heading `accept`** — `status: running`
+becomes `status: accept`, and nothing else in the index changes. The write belongs to the exit, not
+to the last seal: a session cut off between the two resumes with the PR at `running` and nothing
+open, exits at once, and writes it then.
 
 Then print exactly one line to the user:
 
@@ -1164,8 +1244,17 @@ Then print exactly one line to the user:
 ✓ 3/7  a1b2c3d4  model: wire insert/remove through the child index  (1 review cycle)
 ```
 
+Where the exit just wrote `accept`, append one clause to that line: the PR is ready for them to read.
+
 That line is the whole progress display. Do not maintain a todo list alongside the plan — a second
 copy of the same state only drifts.
+
+## After the loop
+
+The PR is at `accept`: its code is written and is now the user's to read. Name the plan directory and
+stop. **Only the user's word that it is finished moves it on**: then write the PR heading `done`, and
+the arc's **Status** `done` with it. Findings instead send the PR back: its heading goes to `planning`
+while each finding is written as a new todo under it, then to `running`, and the loop runs again.
 
 ## Standing rules
 
@@ -1191,7 +1280,7 @@ copy of the same state only drifts.
 
 **That file is the one `run-arc` skill, now and after any upgrade.** If the user later takes
 Standard, §10–§13 are spliced into the sections of this file they name — step (b) gains a gatekeeper
-spawn, step (c) gains the combination rule, the arc review is appended after the loop — and the path
+spawn, step (c) gains the combination rule, the arc review replaces *After the loop* — and the path
 never changes. **Do not write `run-arc-standard/`, `run-arc-full/`, or a companion skill holding "the
 rest of the loop".** One loop, one file.
 
@@ -1228,12 +1317,15 @@ does not grow with the size of the job.
 ## 8. The three phases, and why they are separate sessions
 
 ```
-/plan-arc   →  writes the plan directory, gets it approved         Status: planning → ready
-/run-arc    →  runs the per-todo loop, then reviews the whole arc   Status: ready → running
-                 → review → review-fix → accept
-(maintainer tests it)
-/test-arc   →  turns the maintainer's findings into todos           Status: accept → ready
+/plan-arc   →  writes the plan directory, gets it approved     arc: planning → underway
+                                                                PR:  planning → running
+/run-arc    →  runs the per-todo loop, then the agents' read    PR:  running → accept
+                 of the PR, and its fix pass                         (the read happens at accept)
+(maintainer tests it, beside the agents or after them)
+/test-arc   →  turns the maintainer's findings into todos       PR:  accept → planning → running
                  (then /run-arc again)
+(maintainer says it is finished)                                PR:  accept → done; the arc
+                                                                     done with its last PR
 ```
 
 **One phase, one session.** Planning, running and accepting each run in their own session — not one
@@ -1419,41 +1511,71 @@ measured occupancy above, which is a reading, not a formula.
 
 ### The Status vocabulary
 
-One arc, one plan directory, one status. All of its values, in the order they occur:
+§3 gave the two levels and their values: a status names an **activity**, never who performs it; each
+**pull request** carries one in its `### PR <k>` index heading, and the **arc** one in its `Status`
+bullet. A stop for the maintainer is no value of its own: it leaves every status where it is, and the
+open question is recorded where it was asked — a `design-question` todo's own file, an `ask` in
+`review.md` (§13), or `challenge.md`'s `unresolved` disposition for a challenge stall (§16). What
+Standard adds is **who writes each transition**, and the one thing a PR's heading cannot say on its
+own.
 
-`planning` → `ready` → `running` → `review` → `review-fix` → `accept` → `done`, with `needs-human`
-whenever the run stops for the maintainer, from any state, and `aborted` — terminal, reached only
-from `planning`, at step 5's pre-challenge gate (§9).
+**A pull request's transitions:**
 
-- **`planning` → `aborted`**: the pre-challenge gate's answer was **abort**. Nothing moves an arc out
-  of `aborted` again; it is the one terminal value besides `done`. **The plan directory stays on
-  disk, readable** — the rejected decomposition is the only record anywhere that one was proposed
-  and what it said.
-- **`running` / `review` / `review-fix` / `accept` → `planning`, for a large replan** (§9,
-  *Replanning*): whichever phase finds the replan large writes its mid-replan note first and moves
-  Status here, and the arc goes back to `/plan-arc`. Never beside a live run on another pull request
-  of a grouped arc.
-- **`planning` → `running` or `review-fix`, for a re-entered arc that left a run**: approval writes
-  the Status the arc left, not `ready` (§9, step 7 says which and why). Every other approval is the
-  ordinary `planning` → `ready`. No Status value records "re-entered"; it is read off the directory.
-- **`review-fix` → `accept`**: the code is finished and the agents have no findings left. The run is
-  now waiting on the maintainer's own testing, not on any agent.
-- **`accept` → `done`**: **the maintainer said so.** Nothing else moves Status here — not a clean
-  gate, not an agent's opinion, not another lens pass. **One exception, and only where watch orders
-  (§21) and the observation store (§19) are both installed:** a meta-arc is closed by the session
-  holding the store's role once its watch order's evidence is in, because for a meta-arc there is
-  nothing for the maintainer to test (§21). Every other arc is the maintainer's word alone. Where
-  journeys are installed, this write may also ask whether the journey is over (*Journeys*, below).
-- **`accept` → `running`, only where grouping is installed** (*Grouping an arc into pull requests*,
-  below): a grouped arc runs `running` → `review` → `review-fix` → `accept` once per pull request,
-  and the maintainer's `/run-arc` on the arc directory at a PR's `accept` starts the next one, moving
-  Status straight to `running`. Not through `ready`: the invocation is their go, and a `ready` in
-  between would be a state nobody acts on. `done` comes only after the last open PR's `accept`.
+- **`planning` → `running`**: approval (§9, step 7) writes `running` on every PR heading still at
+  `planning`. For a re-entered arc it writes `running` on those and on each PR the replan gave new
+  todos; every other PR keeps the value it held.
+- **`running` → `accept`**: the loop's exit, when it leaves the PR no open todo (§4).
+- **`accept` → `planning` → `running`**: whatever produces todos for the PR — the arc review's
+  triage, a test round, a small replan — writes `planning` first, then `running` once the todos are
+  written and, where the challenge phase is installed, checked. Producing none leaves the PR at
+  `accept`. A small replan of a PR already at `running` leaves it `running`: only a PR at `accept`
+  goes through `planning`.
+- **`accept` → `done`**: **the maintainer said so**, normally at the merge. Nothing else moves a PR
+  here — not a clean gate, not an agent's opinion, not another lens pass. **One exception, and only
+  where watch orders (§21) and the observation store (§19) are both installed:** a meta-arc's PRs are
+  closed by the session holding the store's role once its watch order's evidence is in, because for
+  a meta-arc there is nothing for the maintainer to test (§21).
 
-The vocabulary is **cyclic, not terminal**: findings from the maintainer's testing open a test round,
-and a round that *produces todos* returns Status to `ready`, where `running` picks them up like any
-other todo; a round the maintainer chooses to redesign returns it to `planning` (§14). A round whose
-findings all turn out not to be defects produces none and leaves Status at `accept`.
+**`accept` alone does not mean the agents are finished.** The loop writes `accept` the moment the
+code is written, *before* the agents read it (§11), because reading is what `accept` names. Whether
+the agents' share of the reading — the **automatic read** — has closed is read off the PR's last
+line in `review.md`'s **review log** (§11): it is closed only when that line reads `confirmed` or
+`triage closed — nothing to fix`. A PR at `accept` whose read is closed is **waiting on the
+maintainer**; one whose read is still open has work left for a skill. Every site that needs to tell
+the two apart — routing, the handoff, the pull-request summary, the parked-watch-order scan and the
+store's close where installed — reads the log this way and never reads bare `accept` as "the agents
+are done".
+
+**The arc's transitions:**
+
+- **`planning` → `underway`**: approval, in the same write that sets its PRs `running`.
+- **`underway` → `planning`, for a large replan** (§9, *Replanning*): whichever phase finds the
+  replan large writes its mid-replan note first and moves the arc here; the PR headings keep their
+  values; the arc goes back to `/plan-arc`, whose approval returns it to `underway`. Never beside a
+  live run on another pull request (*Grouping an arc into pull requests*, below).
+- **`underway` → `done`**: written together with the last PR's `done`, by whoever writes that `done`.
+  Where journeys are installed, this write may also ask whether the journey is over (*Journeys*,
+  below).
+- **`planning` → `aborted`**: the pre-challenge gate's answer was **abort** (§9). Nothing moves an
+  arc out of `aborted` — it is the one terminal value besides `done` — and **the plan directory
+  stays on disk, readable**: the rejected decomposition is the only record anywhere that one was
+  proposed and what it said.
+
+**The vocabulary is cyclic per pull request, not terminal**: findings — the agents' read, the
+maintainer's testing, a colleague's review — send a PR back to `planning` and round again, while the
+arc stays `underway`. **No skill converts a plan written under an older vocabulary**; a session that
+meets one works it out, or asks (§19, *Constant improvement*).
+
+> **Why the read is a log, not a status.** The originating system once kept two arc values for the
+> read and its fix pass. Its rules sent a session resuming a finished fix pass back into the full
+> review, fanning the lenses out again over a review that was done; a review with only notes had no
+> rule moving it
+> on at all, and one arc sat at the review value for weeks as a de facto "waiting on the maintainer's
+> answers". Six challenge rounds then went into deriving the read's state from sections, seals and
+> change-ids, before the maintainer cut it: *"the important bits to be precise about is not losing
+> information (my input, findings, research, ...), and not following rules strictly."* So the log is
+> one dated line per step, read by its last line as guidance — and a session that finds the log and
+> the files disagreeing says so and works it out, or asks.
 
 ### The full plan directory layout
 
@@ -1468,19 +1590,25 @@ decisions.md                questions asked, alternatives rejected, and replans 
                             planning or running
 challenge.md                challenge findings and disposition (Optional layer, §16) — and a
                             small replan's scoped pass, as a `## Round N (replan)`
-review.md                   the arc review's triaged findings, written by /run-arc
+review.md                   the review log, then each read's triaged findings, written by
+                            /run-arc (§11, §12)
 research/<name>.md          background too long for a todo: triage reports, prior investigation
 ```
 
 **Write nothing else into these files — each is owned by exactly one phase**, so it is never
-ambiguous which one may add to it, with one listed exception, the last bullet:
+ambiguous which one may add to it, with two listed exceptions, the last two bullets:
 
 - **plan** writes `README.md`, `todos/01-…`, `decisions.md`, `challenge.md`, and `research/` for an
   original todo's background.
 - **run** writes `review.md` and, if it finds anything fixable, `todos/fix1-…`, `fix2-…`, appending
   them to the index.
 - **test** writes `todos/test<N>.<k>-…`, one `research/` file per triaged finding, and appends its
-  round's questions, rejected alternatives and replan line to `decisions.md`.
+  round's questions, rejected alternatives and replan line to `decisions.md`. It also writes into
+  `review.md`, which run owns: the maintainer's findings into a read's section while the agents'
+  read is open, and a round's `reopened` line in the review log (§14).
+- **a status** — the arc's `Status` bullet, a PR heading, and a review-log line — is written by the
+  writer its own transition names (*The Status vocabulary*, above; §11 for the log), whichever phase
+  that is.
 - **a replan** (§9, *Replanning*), whichever phase runs it, may for that replan create or rewrite an
   **unsealed** todo file; add, drop, move or rewrite its index entry; append to `decisions.md` and
   `challenge.md`; mark a `decisions.md` or `research/` entry reversed in place; and, for a large
@@ -1494,8 +1622,8 @@ ambiguous which one may add to it, with one listed exception, the last bullet:
 **Id schemes do not collide by construction.** Plain todos are `1.`, `2.`, …; review-fix todos are
 `fix1`, `fix2`, … continuing from the highest already present rather than restarting; test-round
 todos are `test<N>.<k>` — round `N`, todo `k` within it. Each test round gets its own `## Test round
-N` section in the index — `## Test round N (PR <k>)` in a grouped index (§8, *Grouping an arc into
-pull requests*). **Ids never decide what runs:** the loop picks every open todo in index order (§7),
+N (PR <k>)` section in the index, naming the PR it tested — PR 1 in an arc of one PR. **Ids never
+decide what runs:** the loop picks every open todo in index order (§7),
 so a todo a replan adds under any id is picked up, and neither a test round nor a review-fix arc
 needs a scoping rule of its own. The originating system once scoped a test round's run to that
 round's ids, needed an exemption for the review-fix arc's, and could strand a todo written under any
@@ -1562,37 +1690,38 @@ full vocabulary above.
 presence of a House rules section, because a nested journey's README carries House rules its arcs
 share — a skill that searched for House rules would pick up the journey README as a plan to run.
 
-**A journey's current arc is derived, never stored.** An arc at `accept`, `done` or `aborted` is
-**settled for routing**: nothing has more work to do on it unprompted. A flat journey's current arc
-is itself, unless settled. A nested journey's is the first planned entry in `## The arcs` that is not
-settled. That `accept` counts as settled is deliberate: an arc waiting on the maintainer's testing,
-or parked on a watch order (§21), must not block the next arc. This is routing only, and moves no
-Status.
+**A journey's current arc is derived, never stored.** An arc is **settled for routing** — nothing
+has more work to do on it unprompted — when it is `done` or `aborted`, or `underway` with every PR
+`done` or **waiting on the maintainer** (`accept`, its automatic read closed: *The Status
+vocabulary*, above). Everything else is unsettled: an arc at `planning`, and an `underway` arc with
+any PR at `planning`, `running`, or `accept` with its read still open — work left to write, to code,
+or for the agents to read. A flat journey's current arc is itself, unless settled. A nested
+journey's is the first planned entry in `## The arcs` that is not settled. That a PR waiting on the
+maintainer counts as settled is deliberate: an arc waiting on their testing, or parked on a watch
+order (§21), must not block the next arc — and with it, for a watch order, the very later session
+whose handoff would answer it. This is routing only, and moves no status.
 
-**One exception, where grouping is installed (*Grouping an arc into pull requests*, below):** an
-arc at `accept` while any of its pull requests still *holds an open todo* is a **mid-arc `accept`**,
-and it is **not** settled. It is waiting on the maintainer's testing of one PR, but it still has work
-to run — its next PR, or a round on an earlier one — so there is no later arc to plan, and counting
-it settled would let a journey call plan the next arc over an unfinished one. Being unsettled, it can
-be the current arc; where it is, `/plan-arc <journey>` and `/run-arc <journey>` both hand back its
-`/test-arc` **and** its `/run-arc` line and do neither, because at a PR's `accept` the choice between
-testing that PR and starting the next is the maintainer's. An ungrouped arc has one PR, so its
-`accept` is always settled.
+**One unsettled state hands back more than one line:** a PR waiting on the maintainer while a
+later PR of the same arc is `running` (where grouping is installed, *Grouping an arc into pull
+requests*, below). The arc still has code to write, so there is no later arc to plan; but whether to
+test the waiting PR or start the open work is the maintainer's choice, so a journey call hands back
+that PR's `/test-arc` line **and** the arc's `/run-arc` line and does neither.
 
 **So the maintainer can name a journey instead of an arc:**
 
 - `/plan-arc <journey>` plans the next arc when there is no current one, and resumes the current
-  one if it is still at `planning`. If the current arc is further along, it hands back that arc's
-  `/run-arc` line and plans nothing. If the current arc stopped at `needs-human`, it hands back both
-  that arc's `/plan-arc` and `/run-arc` lines and does neither — an arc that stopped may never have
-  been approved.
-- `/run-arc <journey>` runs the current arc if it is at `ready` or later, and names it in its first
-  line. **It never runs an arc still at `planning` or stopped at `needs-human` because a journey was
-  named** — naming a journey is a vaguer request than naming an arc, and running an unapproved plan
-  on its strength would turn a routing convenience into an approval. It hands back the right lines
-  instead.
-- `/test-arc <journey>` resolves to the arc waiting at `accept`, never to the current arc. When
-  several are waiting, it lists them and asks.
+  one if it is still at `planning` — a challenge stall included, since a stall leaves the arc at
+  `planning` (§16). If the current arc is `underway`, it hands back that arc's `/run-arc` line (or
+  the two lines above) and plans nothing; where a *later* listed arc sits at `planning` — a test
+  round reopened an earlier arc's PR while the next was being planned — it names that one too and
+  offers to resume planning it instead. Any other arc's PR waiting on the maintainer is mentioned in
+  passing, with its `/test-arc` line, and never blocks planning.
+- `/run-arc <journey>` runs the current arc if it is `underway`, and names it in its first line. **It
+  never runs an arc still at `planning` because a journey was named** — naming a journey is a vaguer
+  request than naming an arc, and running an unapproved plan on its strength would turn a routing
+  convenience into an approval. It hands back the right lines instead.
+- `/test-arc <journey>` resolves to an arc with a PR that can be tested (§14), never to the current
+  arc. When several are candidates, it lists them and asks.
 - With no argument, `run-arc` and `test-arc` search for arc directories at both depths, by the test
   above.
 
@@ -1623,9 +1752,10 @@ todos.
 never a computed state — the originating maintainer, on a rule that wrote it mechanically:
 *"supervisor should still converse with human to decide whether the journey is over."* The question
 is asked by whoever writes an arc's `done`, and only when that arc is **the last to reach `done`,
-not the last-listed one**: arcs close out of order, because a meta-arc can park at `accept` on its
-watch order while a later one closes first. So the writer checks every other entry at that moment,
-and asks only when every other entry is already `done` or `aborted` and none is still provisional. It
+not the last-listed one**: arcs close out of order, because a meta-arc can wait on its watch order,
+its PRs waiting on the maintainer, while a later one closes first. So the writer checks every other
+entry at that moment, and asks only when every other entry is already `done` or `aborted` and none
+is still provisional. It
 asks in the same reply as the `done` write — never deferred to a later session, and never decided
 alone, by the store's role (§21) included. A yes writes the journey README's `over`; a no leaves it
 `embarked`, and the next step is `/plan-arc <journey>`. A **flat** journey is asked the same
@@ -1640,11 +1770,12 @@ means a next arc is planned, which promotes it.
 ### Grouping an arc into pull requests
 
 **Optional, and only for a user whose arcs reach review as pull requests (§24 Q6).** It lives here
-because it is a shape of the index and of the Status cycle. It edits `plan-arc`'s sizing step and
-index template, `test-arc`'s entry, the three arc-review lens briefs, `arc-triage`'s brief and two
-challenge lenses, and it adds to `run-arc` a **companion file** — `GROUPED.md` beside its
-`SKILL.md` — that the supervisor reads only for a grouped arc (*What it costs*, below). Everyone
-else skips it: an index with no PR headings is one pull request, and runs exactly as written above.
+because it is a shape of the index. Every arc already has a `### PR 1` heading (§3); an arc is
+**grouped** when it has **more than one**. Grouping edits `plan-arc`'s sizing step and index
+template, `test-arc`'s entry, the three arc-review lens briefs, `arc-triage`'s brief and two
+challenge lenses, and it adds to `run-arc` a **companion file** — `GROUPED.md` beside its `SKILL.md`
+— that the supervisor reads only for a grouped arc (*What it costs*, below). Everyone else skips it:
+an arc of one PR runs exactly as written above.
 
 **The problem it solves.** "One arc is one pull request" used to be absolute here. The originating
 maintainer, when it was put to them: *"Usually, but often enough not, and we don't want to have a
@@ -1654,11 +1785,12 @@ its very end or split across arcs that each re-plan what the other already settl
 the reason the rule existed: **inside a pull request the revisions are the review unit**, so an arc
 splits only between pull requests, never mid-todo.
 
-**The format.** A grouped index divides `## Todos` into `### PR <k> — <title>` headings, each
-followed by **one bullet naming why it is a PR of its own**, then its todos. Todo numbers run on
-across groups, so a todo's identity and the cheap board read (§3) do not change. Anything appended
-later goes under the PR it concerns: review-fix todos at the end of the group whose review found
-them, and a test round's section names its PR, `## Test round <N> (PR <k>)`.
+**The format.** A grouped index has several `### PR <k> — <title> — status: <value>` headings, each
+followed by **one bullet naming why it is a PR of its own**, then its todos. (An arc of one PR has no
+such bullet: there is no other PR to be distinguished from.) Todo numbers run on across groups, so a
+todo's identity and the cheap board read (§3) do not change. Anything appended later goes under the
+PR it concerns: review-fix todos at the end of the group whose review found them, and a test round's
+section names its PR, `## Test round <N> (PR <k>)`.
 
 **The test is two properties, not a list of reasons.** A group is a pull request when it is
 **deliverable** (it leaves a production instance usable) and **reviewable** (a human or a lens can
@@ -1671,38 +1803,49 @@ leaves the tree deliverable, and no todo depends on a later group. **A split is 
 time.** A prerequisite discovered mid-run is a replan (§9, *Replanning*) — a pull request sent
 ahead inside the arc — not this rule's.
 
-**"A PR holds an open todo"** — defined once, and cited by every site that needs it (the handoff,
-every `done` write, the store's close, the pull-request summary's gate, routing): any todo of its
-group not yet sealed, counting the group's review-fix todos and its test rounds' todos as its own.
-For an ungrouped arc it reduces to "any todo is open". The test is open todos, never a PR's
-position: the last PR can still hold a round, and an earlier one can hold one while the last runs.
+**"A PR holds an open todo"** is §4's definition, cited by every site that needs it (the loop's
+exit, the handoff, every `done` write, the store's close, routing): any todo of its group not yet
+sealed, counting the group's review-fix todos and its test rounds' todos as its own, and not
+counting a `deferred`, `dropped` or `superseded` one. The test is open todos, never a PR's position:
+the last PR can still hold a round, and an earlier one can hold one while the last runs.
 
-**One Status per arc, cycling per PR** (§8's vocabulary, `accept` → `running`). A per-PR Status was
-considered and rejected: two status facts per arc that can disagree, and every mechanism that reads
-Status would have to learn a second place. `done` is written only where no PR holds an open todo;
-until then the maintainer's *finished* is a go for the PR in front of them, not the arc's `done`.
+**Each PR carries its own status** (§3), and each moves alone: a round on PR 1 sends PR 1 back to
+`planning` and leaves PR 2's heading as it is. The arc's own `Status` stays `underway` throughout and
+becomes `done` only with its last PR's `done`; until then the maintainer's *finished* is a go for the
+PR in front of them, not the arc.
+
+> **A reversal, recorded.** An earlier revision of this file kept **one** Status per arc, cycling
+> once per PR, and rejected a per-PR status as two status facts per arc that could disagree. In use
+> the single bullet was the misfit: every awkward routing case — an arc at `accept` with its next PR
+> unstarted, a round on an earlier PR that had to "move no Status", a redesign parked until another
+> PR's handoff — was several PRs' states squeezed into one value. The disagreement the rejection
+> feared is avoided by giving the two levels different questions: a PR heading says what is being
+> done to that PR's code, and the arc's bullet says only whether the plan is approved.
 
 **Which PR a session works is stored, not derived**, in a `- **PR:** <k>` header bullet that
-`run-arc` writes. Between a PR's last seal and its review the todos' statuses cannot say which PR is
-open for review, and every PR starts in a fresh session that cannot remember a pick. The maintainer:
-*"Store it and additionally compare to github/forge status"* — the comparison is §24 Q6's forge read.
-The bullet is **written once per PR boundary, at a session's start, and at no other moment** — a
-boundary being a session that finds the bullet absent, or Status at `accept` or `ready` — and the
-value written is the first of: the earliest *earlier* PR with an open test round, so an externally
-reviewed PR is repaired before more is stacked on it; the bullet's own PR, if it has an open round;
-the first group that holds an open todo. Each skips a PR the forge read found merged or closed; an
-open round on such a PR is put to the maintainer instead. The originating maintainer's ruling, kept
-verbatim because a paraphrase of it was wrong once: *"Fix at PR boundaries."* A session resumed
-mid-PR never changes PR.
+`run-arc` writes — **only in a grouped arc**; an arc of one PR has none and works PR 1. Approval
+writes `running` on every PR at once, so with several PRs at `running` the headings cannot say which
+one a session is coding, and every PR starts in a fresh session that cannot remember a pick. The
+maintainer: *"Store it and additionally compare to github/forge status"* — the comparison is §24
+Q6's forge read. The bullet is **written once per PR boundary, at a session's start, and at no other
+moment** — a boundary being a session that finds the bullet absent, or the PR it names `done` or
+**waiting on the maintainer** (*The Status vocabulary*, above). Bare `accept` is not a boundary: the
+loop writes it before the agents read, so a session resumed between a PR's last seal and its review
+would otherwise move on and never review that PR. The value written is the first of: **the earliest
+earlier PR at `running` with an open test round**, so an externally reviewed PR is repaired before
+more is stacked on it; then **the first PR at `running` that holds an open todo**. Each skips a PR the
+forge read found merged or closed; an open round on such a PR is put to the maintainer instead. The
+originating maintainer's ruling, kept verbatim because a paraphrase of it was wrong once: *"Fix at PR
+boundaries."* A session resumed mid-PR never changes PR.
 
 What the bullet scopes:
 
 - **The loop works one PR**, picking only from its group, its review-fix todos and its open round,
-  and exits into the arc review when that PR has none left.
+  and exits when that PR holds no open todo, writing its heading `accept` (§4).
 - **Where the human coding seat is installed (§18), who codes is asked again at each PR's start**,
   over that PR's todos only.
-- **A PR's end ends the session, whatever the occupancy reading** (§8): the session reviews the PR,
-  hands it over at `accept`, and the next PR starts fresh.
+- **A PR's end ends the session, whatever the occupancy reading** (§8): the session runs that PR's
+  read, hands it over once the read is closed, and the next PR starts fresh.
 - **The review reads that PR's diff, not the arc's.** *PR k's tip* is the head of the revisions its
   own todos' **Revision** bullets name — `heads(<rev1>|<rev2>|…)` in jj,
   `git rev-list --topo-order -n1 <rev1> <rev2> …` in git — derived whenever read, never stored. The
@@ -1711,8 +1854,10 @@ What the bullet scopes:
   names a lower revision and is left out. The *PR base* is the arc's base for PR 1 and PR k−1's tip
   after that, and the diff is `jj diff --from <PR base> --to <PR k's tip>` (git:
   `git diff <PR base>..<PR k's tip>`) — never `--to @-`, which stops being PR k's tip once a later
-  PR sits above it. A test round of PR k reads from **its own Round base**, which each round records
-  under its own heading, so two rounds open on different PRs never overwrite one value.
+  PR sits above it. A test round of PR k reads from **its own Round base**, which `/test-arc`
+  records under the round's own heading (§14), so two rounds open on different PRs never overwrite
+  one value; which round a read is of is named by the `reopened — test round <N>` line that opened
+  it (§11).
 - **The lens and triage briefs carry the PR's diff command and its number.** The *what* lens holds
   the diff to that PR's own todos — a later PR's todos still being open is the plan's order, not a
   finding — and the *why* lens judges what *this* diff contributes to the **Value** bullet, not what
@@ -1722,14 +1867,13 @@ What the bullet scopes:
   PR does not wait on PR k's external review.
 
 **A round on an earlier PR.** A colleague's review of PR 1 can arrive while PR 2 is being built.
-`/test-arc` takes it then: besides an arc at `accept`, it accepts an arc at `ready`, `running`,
-`review` or `review-fix` when the findings are about a PR that is handed off (not the one the
-`**PR:**` bullet names) and holds no open todo. It decides which PR from a URL or number in the
-findings matched against the recorded pull requests, and asks once where nothing matches; the
-triage briefs get that PR's diff. **It moves no Status on a live arc** — a running arc rewound to
-`ready` is one no session is working — and says the round is taken at the next PR boundary, never by
-the run that is live now. That boundary's session then codes the round **inside PR 1**, below PR 2,
-where the reviewer will see it:
+PR 1's heading reads `accept` — it was handed off, since `run-arc` moves the bullet off a PR only at
+a boundary — so `/test-arc` takes it by the ordinary rule (§14), deciding which PR from a URL or
+number in the findings matched against the recorded pull requests, and asking once where nothing
+matches; the triage briefs get that PR's diff. **It moves only that PR's heading** — `planning`,
+then `running` — and never the live PR's, and it says the round is taken at the next PR boundary,
+never by the run that is live now. That boundary's session then codes the round **inside PR 1**,
+below PR 2, where the reviewer will see it:
 
 - **jj: place the working revision directly above PR k's tip before the coder starts** —
   `jj new -A <PR k's tip>` — so the coder edits and the gate builds the tree the fix will live in,
@@ -1741,17 +1885,20 @@ where the reviewer will see it:
   second head off a mid-stack revision. Conflicts from the rebase land on the later PRs' revisions,
   not on the fix, and are resolved lowest first as any cascade is (§24 Q1).
 - **git: the fix is appended at the top**, above the later PR, and the handoff says so.
-- The round is reviewed from its own Round base to PR k's new tip, so the diff is the fix and none of
-  the later PRs; its review-fix todos are placed the same way. Its handoff opens **"PR k, round N,
-  landed"** and offers, on the maintainer's yes, to move PR k's bookmark to its new tip and push it
-  — an append on top of what the reviewer saw, and one of the three exceptions to *no outward-facing
-  act* (§24 Q6). The later PRs were rebased above the fix and are now rewritten commits, so
-  **pushing them waits for the maintainer's go**, and the handoff names how to give it.
+- The round's loop exit writes PR k `accept` again, and its read runs from its own Round base to
+  PR k's new tip, so the diff is the fix and none of the later PRs; its review-fix todos are placed
+  the same way. Its handoff opens **"PR k, round N, landed"** and offers, on the maintainer's yes, to
+  move PR k's bookmark to its new tip and push it — an append on top of what the reviewer saw, and
+  one of the three exceptions to *no outward-facing act* (§24 Q6). The later PRs were rebased above
+  the fix and are now rewritten commits, so **pushing them waits for the maintainer's go**, and the
+  handoff names how to give it.
 
 **The pull-request summary for a stack** (§24 Q6), where the summary is part of the install:
 
-- **The gate is the PR's own handoff, not the arc's `done`.** A lower PR goes out for review while
-  the next one is worked on; waiting for `done` would hold it until the whole arc is finished.
+- **The gate is the PR's own read, not the arc's `done`.** PR k's summary may be produced once PR
+  k's automatic read is closed — the PR waiting on the maintainer — and they ask. A lower PR goes out
+  for review while the next one is worked on; waiting for `done` would hold it until the whole arc is
+  finished.
 - **One bookmark, one body, one draft pull request per PR**, named from its group's title. Each body
   names its place — *PR k of n*, and the PR below it — and `Closes #<n>` goes on the last PR only: a
   lower PR that closed the issue would close it before the work is done. PR k > 1 is opened with
@@ -1768,17 +1915,19 @@ where the reviewer will see it:
   the leftovers abandoned. That sequence is reasoning from the forge's documentation, untried.
 
 **What it costs.** In the originating system the arc that introduced grouping grew the run skill by
-about 40,000 characters, roughly 80% of it conditional on a `### PR` heading, threaded through
-paragraphs an ungrouped run applies — so every ordinary run carried text it had to recognise as
+about 40,000 characters, roughly 80% of it conditional on the arc having more than one PR, threaded
+through paragraphs a one-PR run applies — so every ordinary run carried text it had to recognise as
 inapplicable. **That is why it lives in an on-demand companion file**, read right after `README.md`
-whenever the index has a `### PR` heading, a `**PR:**` bullet or a `## Test round <N> (PR <k>)`
-section, and never otherwise — referenced the way §5 says any companion file is, by the skill's own
-directory, in prose. **If that read fails, stop and ask**: running a grouped arc without it does
-not fail loudly, it reviews the cumulative diff and hands off as one pull request.
+whenever the index has **more than one** `### PR` heading, or a `## Test round <N> (PR <k>)` section
+naming a PR other than the one being worked — and never otherwise. Since every index now carries a
+`### PR 1`, a trigger of "any PR heading" would fire on every arc and save nothing. Reference the file
+the way §5 says any companion file is referenced, by the skill's own directory, in prose. **If that
+read fails, stop and ask**: running a grouped arc without it does not fail loudly, it works every
+PR's todos as one list, reviews the cumulative diff and hands off as one pull request.
 
 > **Honest status.** At extraction time no grouped arc had yet run under these rules. They were
-> written from one stack the originating maintainer had run by hand, and the arc that wrote them was
-> itself a single, ungrouped one. Their watch order (§21) was still unanswered.
+> written from one stack the originating maintainer had run by hand, and rewritten once since for
+> per-PR statuses; their watch order (§21) was still unanswered.
 
 ---
 
@@ -1996,19 +2145,21 @@ If the arc changes what a user sees or does, mention that the review phase will 
 already running, and let the user start it now. **In a project where a cold start syncs a database
 for a quarter of an hour, being told at review time is being told too late.**
 
-When approved, set Status and **end the session here**. Status is `ready`, except for an arc this
-session **re-entered** with a mid-replan note (*When `/plan-arc` re-enters an arc that holds work*,
-below), where it is read off the Status the note says the arc left:
+When approved, set the statuses and **end the session here**. Approval writes the arc `underway`
+and, in the same write, `running` on every PR heading still at `planning` (§8, *The Status
+vocabulary*). For an arc this session **re-entered** (*When `/plan-arc` re-enters an arc that holds
+work*, below), the PR headings already hold their own values, so approval writes `running` on every
+heading still at `planning` — an arc stopped at a challenge stall has no other — and also on each PR
+the replan gave new todos; every other PR keeps the value it held, since writing `running` over a
+PR that is `done`, waiting on the maintainer, or untouched would reopen finished reading or restart
+a PR that is not.
 
-- **left from `running` or `review`: `running`** — `ready` is the Status of a plan no run has
-  started, and this arc left a run in the middle: its next session has to resume it, keeping its
-  **Base revision**, so that the arc review still reads the whole arc;
-- **left from `review-fix`: `review-fix`** — the arc review already ran, and what the arc still owes
-  is the supervisor's final review (§12, step 4), which `running` would replace with a second full
-  arc review;
-- **left from `accept`: `ready`** — the test round's section is already written (§14), and `ready`
-  is where any test round's todos wait;
-- **no note: `ready`**, as for any arc.
+**A PR given new todos that already holds a line in `review.md`'s review log** (§11) gets one more
+line first, `reopened — replan`, whether its read was closed or still open, so the new code is read
+once its todos are done and no old triage is resumed over code the replan replaced. Two cases need
+none: a PR with no log line, which has no read begun; and a PR whose last line is **already** a
+`reopened` line — a test round's redesign logs its own (§14), and a second line would widen the next
+read from the round's diff to the whole PR.
 
 Then remove the mid-replan note, which is spent, and hand over a copy-pasteable line:
 
@@ -2060,15 +2211,19 @@ pick the adequate herd of lenses, researchers … to do this, according to the s
   maintainer can rule to them. **A todo the maintainer will code themselves skips the pass** (§18,
   where installed) unless they ask for it: they co-wrote the amendment and read it as they code, and
   waiting on a lens costs the flow §18 exists to protect. Without the challenge phase there is no
-  pass at either end; the trace below still applies.
+  pass at either end; the trace below still applies. **A PR at `running` stays `running` through a
+  small replan** — its todos are being written beside code still to be written, and no read waits on
+  them. Only a small replan that adds todos to a PR at `accept` moves it, to `planning` and then
+  `running`, logging `reopened — replan` first as step 7 has it.
 - **Large** — a changed approach, a re-split arc, a dropped pull request. Whichever phase finds it
-  first writes a **mid-replan note**: what the maintainer agreed, what the replan must still do, the
-  Status the arc is leaving, the working copy's state (kept or discarded — a kept one the resumed run
-  will ask about), and the findings and `research/` reports it must answer, by path; plus a
-  question-and-answer line in `decisions.md`, since the session that agreed it is about to end. The
-  note is an **indented sub-bullet beneath the Status bullet, never on the `- **Status:**` line
-  itself**: anything that reads Status by matching that line — a status-line script, a grep for
-  `running` — would read free text there as a live Status. Then Status goes to `planning` and the arc
+  first writes a **mid-replan note**: what the maintainer agreed, what the replan must still do,
+  which PRs it touches and the status each holds, the working copy's state (kept or discarded — a
+  kept one the resumed run will ask about), and the findings and `research/` reports it must answer,
+  by path; plus a question-and-answer line in `decisions.md`, since the session that agreed it is
+  about to end. The note is an **indented sub-bullet beneath the Status bullet — never on the
+  `- **Status:**` line itself, and never in a PR heading**: anything that reads a status by matching
+  those lines — a status-line script, a grep for `running` — would read free text there as a live
+  value. Then the arc's Status goes to `planning` — its PR headings keep their values — and the arc
   returns to `/plan-arc` (*When `/plan-arc` re-enters an arc that holds work*, below), which reworks
   the unsealed todos and runs its whole challenge phase over them, progress judgement included. A
   `run-arc` session that agreed a large replan ends by handing back `/plan-arc <absolute plan
@@ -2131,6 +2286,14 @@ about 300 KB, two-thirds of it `challenge.md`:
    states its own fan-outs only.
 4. `research/` only where a todo or the mid-replan note links it.
 
+- **A challenge stall still awaiting the maintainer comes before anything else** (§16, where
+  installed). A stall leaves the arc at `planning`, so an arc stopped there is simply re-entered
+  here, with the stall recorded only in `challenge.md`: a finding whose disposition is
+  `unresolved — …` with no `→ … (maintainer)` transition after it. Put each such finding to the
+  maintainer as §16's progress judgement has it, and act on the answer — restart at step 6's
+  fan-out, or `unresolved → accepted (maintainer)` and on to step 7 — rather than resuming past it.
+  Search all of `challenge.md` for them, not only its newest round, since a transition is recorded
+  in place.
 - **A mid-replan note is finished, not re-derived.** Where the Status bullet carries one, or
   `decisions.md` already says what the replan must still do, that is the work. An agreed replan
   resumes at step 5 without a new pre-plan and skips the pre-challenge gate, unless the note says
@@ -2142,16 +2305,20 @@ about 300 KB, two-thirds of it `challenge.md`:
 - **Round numbering continues.** The next round is one past the highest `## Round N` in
   `challenge.md`, `(replan)` rounds included — a derivation read off the file when the fan-out is
   spawned (§3, *a House rule stating a fact read off a moving base*), never `## Round 1` again.
-- **From `accept`**, the round's `## Test round N` section is already written (§14). The replan's new
-  todos are that round's `test<N>.<k>` todos under it, written as `/test-arc` writes them: each
-  **Spec** cites the triage report(s) it answers, and each of the section's per-finding lines gains
-  the id(s) of the todo(s) answering it, so the round still records, finding by finding, what
-  answered what.
+- **A PR sent back from `accept`** came one of two ways, told apart by whether a `## Test round N
+  (PR <k>)` section exists on disk for the replan. **With one**, a test round judged large wrote it
+  (§14): the replan's new todos are that round's `test<N>.<k>` todos under it, written as `/test-arc`
+  writes them — each **Spec** cites the triage report(s) it answers, and each of the section's
+  per-finding lines gains the id(s) of the todo(s) answering it, so the round still records, finding
+  by finding, what answered what. **Without one**, the replan came from the agents' read — a `fix`
+  bucket over four that the maintainer answered "replan" (§12) — and what it leaves is the triaged
+  list in `review.md`, the mid-replan note and its `decisions.md` line; the todos are plain-numbered,
+  written from the findings the note names.
 - **A re-split grouped arc clears its `**PR:**` bullet** before approval (§8): the bullet names a
   pull request by number, a re-split renumbers or drops them, and an absent bullet is a boundary,
   which makes the next run derive it afresh.
 
-Which Status approval writes is step 7's, above.
+Which statuses approval writes is step 7's, above.
 
 ### Scope note
 
@@ -2490,28 +2657,86 @@ NOTES: what blocked you — environment broken, permission denied, missing file
 
 ## 11. After the loop: the arc review
 
-**What this section touches:** it **adds** three agent briefs and **appends** a phase to the
-`run-arc` skill from §7, after its per-todo loop. Still one run-arc file.
+**What this section touches:** it **adds** three agent briefs and replaces §7's *After the loop* in
+the `run-arc` skill with this phase. Still one run-arc file.
 
 Every todo has now been reviewed in isolation and every revision builds. **That is exactly the
 guarantee the per-todo loop gives you, and it is not the same as the arc being any good.** The arc
 review is where the whole thing gets judged at once.
 
-Set **Status** to `review`. Then work out the one thing every reviewer needs and get it right,
-because a wrong value silently reviews the wrong code: **the command that prints the arc's cumulative
-diff** — or, in a grouped arc (§8, *Grouping an arc into pull requests*), the diff of the one pull
-request that just ended, which that subsection defines.
+**The review is reading, and the PR is already at `accept`** — the loop's exit wrote it (§4). The
+agents read first: the lenses, the UI tester where installed, and the supervisor's own review. The
+maintainer's testing may read beside them (§14), and a colleague's review comes after both.
+
+**The review log.** Where the agents' read stands is a plain log at the top of `review.md`, under
+`## Review log`: one dated line per step, naming the PR (`2026-10-15 — PR 1 — read started`), appended
+by whoever takes the step, **before** acting on it. The lines:
+
+- `read started — <scope>`: the lenses fan out; the scope is the whole PR, or a test round's diff
+  (`test round <N>`). A section of `review.md` that `/test-arc` already opened for this read —
+  findings the maintainer reported before it began — is adopted as one of its sources; open none
+  beside it.
+- `triage closed — fix todos: fix<n>, …` or `triage closed — nothing to fix`: logged by §12's triage,
+  and only once no `ask` of the read is unanswered, so an answer never arrives at a closed read.
+- `fix todos: fix<n>, …`: the supervisor's own line from the final review (§12, step 4), for new
+  todos it triages out of findings the maintainer reported after the triage closed, logged before
+  the todos are written.
+- `confirmed`: the final review found every fix addressed.
+- `reopened — <why>`: whoever adds todos to a PR at `accept` other than the read's own fix todos — a
+  test round, a replan — or asks for the read again, which adds none.
+
+The findings, asks and `answered` lines stay in the read's own section as always; the log says only
+where the PR stands. **The automatic read is closed when the last line is `confirmed` or `triage
+closed — nothing to fix`** (§8, *The Status vocabulary*).
+
+**Reading it** — guidance, not a decision table. A session finding the PR at `accept` reads its last
+line and goes to the step it names:
+
+- No line yet, or `reopened` with its todos done: a read, over the scope the `reopened` line names.
+- `read started`: the read or its triage was cut off. If `review.md` already holds this read's
+  triaged list, resume the triage — open asks first (§13) — spawning no lens. If it does not, the
+  lenses' findings died with that session, so fan out again; nothing recorded is lost by doing so.
+- `triage closed — fix todos: …`, or `fix todos: …`: the todos it names — write any not on disk yet
+  — and once they are all done, the final review. No lens fans out for it.
+- `confirmed` or `triage closed — nothing to fix`: the read is closed; the PR waits on the
+  maintainer, so hand it over (§13).
+
+Where the log and the files disagree — a line naming a todo that does not exist, a heading that does
+not fit the line — say so and work out the right step, or ask, rather than following the line
+mechanically. (§8's *The Status vocabulary* says why this is a log read as guidance, not a status.)
+
+**This changes §7's *Before the loop*.** Its bullet for a PR at `accept` becomes: resume from the
+review log, as above — reconcile nothing, and fan out no lens before the log says to. And a PR found
+at `planning` in an approved arc is one whose todos were being written when a session ended: a fix
+pass cut off mid-write is told by the log, whose `fix todos` line names the todos — write any not on
+disk yet and continue at §12's review-fix arc; a test round's or a replan's todos are handed back to
+the skill that writes them, with its `/test-arc` or `/plan-arc` line, and nothing is run. Its open
+questions also include every `ask` in `review.md` with no `answered` line (§13). Its bullet for an
+arc still at `planning` changes too: with `plan-arc` installed, approval is that skill's (§9), and
+such an arc may hold a challenge stall or a large replan, so hand back its `/plan-arc` line and run
+nothing rather than asking for an approval here.
+
+Then work out the one thing every reviewer needs and get it right, because a wrong value silently
+reviews the wrong code: **the command that prints the diff under review** — the arc's cumulative diff
+for an arc of one PR, or, in a grouped arc (§8, *Grouping an arc into pull requests*), the diff of the
+one pull request that just ended, which that subsection defines.
 
 ```
 git diff <base>..HEAD
 jj diff --from <base revision> --to @-        # @ is the empty working revision; the tip is @-
 ```
 
+**For a test round** — the round named on the PR's last `reopened — test round <N>` line — read from
+that round's **Round base**, which `/test-arc` wrote in the round's own section (§14), to the tip:
+everything the maintainer has not yet seen. Reviewing the whole stack again would re-litigate rounds
+already accepted.
+
 ### a. Fan out the three lenses
 
-Spawn `arc-review-what`, `arc-review-how` and `arc-review-why` **in parallel — all three in a single
-message.** They are independent, and reading the arc three times in sequence wastes the wall clock
-you just spent.
+Log `read started` first, then spawn `arc-review-what`, `arc-review-how` and `arc-review-why` **in
+parallel — all three in a single message.** They are independent, and reading the arc three times
+in sequence wastes the wall clock you just spent. **For a test round, spawn only `what` and `how`:**
+the maintainer's findings that opened the round are already its value judgement.
 
 Each brief is short, because each agent reads the plan itself:
 
@@ -2883,22 +3108,45 @@ Then sort every surviving finding into exactly one bucket:
   `NEEDS-DOMAIN` question goes here too — it is a fact the maintainer must supply, not a decision,
   but it reaches them the same way.
 
-**Never turn an `ask` into a `fix` todo.** A `why` finding in particular is usually not code: "this
-delivers no user value" is answered by the maintainer, not by an agent writing more of it.
+**Never turn an unanswered `ask` into a `fix` todo.** A `why` finding in particular is usually not
+code: "this delivers no user value" is answered by the maintainer, not by an agent writing more of
+it. **An answered `ask`** (§13) is triaged like any finding — a `fix<n>` todo quoting the answer, a
+`note`, or a replan where the answer widens the arc — so what the maintainer chose for it is never
+lost. **The triage closes, and is logged closed, only once every `ask` of the read carries its
+`answered` line** — and only after re-reading the read's section just before logging, so findings
+the maintainer appended while this triage ran (§14) are triaged with the rest.
+
+**A `fix` bucket of more than four means the arc was under-planned.** Do not quietly start a second
+project, and write no todo yet: put the list to the user as one `ask` of the read — fix, defer or
+replan — so it holds the triage open like any other. **Fix**: the triage closes as usual, and the
+review-fix arc below writes the todos. **Defer**: the deferred findings become `note`s, `triage
+closed — nothing to fix` is logged, and the PR stays at `accept`; a defer is a replan too (§9), and
+leaves its trace. **Replan**: §9's large end — write its mid-replan note, log `triage closed —
+nothing to fix`, and the arc goes to `planning`, with nothing handed to the maintainer; `/plan-arc`'s
+approval later reopens the PRs it gave todos (§9, step 7).
+
+**Nothing is dropped between reads.** A read that starts after a `reopened` line carries forward any
+`fix` finding or `ask` the previous read left unworked. And the maintainer's own testing reads beside
+the lenses (§14): findings they report while the read is open are appended to the read's section in
+`review.md` as one more source, and this triage handles them with the lenses' — no round, no second
+session. If the triage has already closed, the final review (step 4 below) triages them before it may
+log `confirmed`.
 
 **The `why` lens's `OBJECTIVES` line is not a finding** (§25). Carry it into `review.md` verbatim
 alongside the triaged list, named plainly as a non-finding: the drop-anything-you-would-not-defend
 rule above is a filter over findings, and this line has nothing to defend, only to relay.
 
-Write the whole triaged list into `review.md`. **That is the durable record of what was found; if the
-session dies here, it is all that survives.**
+Write the whole triaged list into `review.md`, beneath the review log. **That is the durable record
+of what was found; if the session dies here, it is all that survives.**
 
 ### Spec compression
 
-The lenses have now finished reading the plan, and Status is about to move past `review`. **This is
-the one point where spec compression fires**, in bulk, over every already-sealed todo file: replace
-each one's prose **Spec** paragraph — instructions that have already been executed — with a one-line
-pointer, e.g.
+**The close of the read's triage is the one point where spec compression fires** — whether the
+triage empties the buckets or writes fix todos — in bulk, over every already-sealed todo file: the
+lenses have by then finished reading the plan. Never on reaching `accept`: the loop writes `accept`
+before the lenses fan out, and the `what` lens re-verifies every "Done when" against the uncompressed
+Spec. Replace each sealed todo's prose **Spec** paragraph — instructions that have already been
+executed — with a one-line pointer, e.g.
 
 ```
 *(spec compressed after arc review — see revision <hash> for what that revision produced)*
@@ -2915,39 +3163,43 @@ exactly what the review-fix arc and any later todo depend on. **Never compress `
 
 ### If every bucket is empty
 
-Set **Status** to `accept`. **The agents have run out of findings, which is not the same thing as the
-arc being finished.** Hand it to the maintainer (§13).
+— or only `note`s are left, with no `ask` unanswered: the triage closes the automatic read. Log
+`triage closed — nothing to fix`, and write no status, since the PR is already at `accept`. **The
+agents have run out of findings, which is not the same thing as the PR being finished.** Hand it to
+the maintainer (§13).
 
 ### The review-fix arc
 
-If the `fix` bucket is non-empty, run a second, smaller arc over it. Same loop, same discipline, one
-revision per todo.
+If the `fix` bucket is non-empty and no `ask` of the read is unanswered, run a second, smaller arc
+over it. Same loop, same discipline, one revision per todo. The PR goes `accept` → `planning` →
+`running` → `accept`; the arc's own Status is never written.
 
-1. **Write the fix todos as `todos/fix<n>-<slug>.md`**, `<n>` continuing from the highest already
-   present rather than restarting — the same shape as an ordinary todo file — and append each to
+1. **Log the fix todos, set the PR heading `planning`, then write them as `todos/fix<n>-<slug>.md`**,
+   `<n>` continuing from the highest already present rather than restarting. The log line comes
+   first — `triage closed — fix todos: fix<n>, …` — so a session cut off before the todos exist
+   still finds their names. Each takes the same shape as an ordinary todo file and is appended to
    `README.md`'s index, **each new entry carrying its own summary bullets** the way every other entry
-   does (§3). One coherent topic each, with a real "Done when" clause. **The findings are
-   the spec — quote them.** One plan stays one arc. In a grouped arc (§8) they are appended at the
-   end of the group whose review found them, so a fix stays inside the pull request it repairs.
-   These todos are a replan (§9, *Replanning*); step 3 runs its pass, and writing them leaves its
-   trace.
-2. **More than four fix todos means the arc was under-planned.** Do not quietly start a second
-   project. Report the list and ask the user whether to fix, defer, or replan. A replan here is §9's
-   large end; a defer is a replan too, and leaves its trace.
-3. Set **Status** to `review-fix`. Where the challenge phase is installed, run §9's small-end pass
-   over the fix todos first, sort its findings into this section's `fix`/`note`/`ask` buckets, and
-   correct the todos for the `fix` ones. Then run the ordinary loop, which finds the `fix*` todos as
-   the open ones. **Print the fix todos before you start so the user can interrupt**; you do not
-   need their approval for mechanical fixes, but they must be able to see them coming. Then take the occupancy reading
-   afresh before the first fix todo starts (§8): the arc review sealed nothing, so no seal has read
-   it for you. A handoff here leaves Status at `review-fix`, and resuming has to honour that:
-   `Before the loop` leaves a `review-fix` Status alone rather than resetting it to `running`, and
-   once its fix todos are done a resumed session goes straight to step 4 below, never back into
-   §11's lens fan-out.
-4. **Then you alone do the final review.** No lens fan-out this time. Walk the `review.md` list and
-   confirm, finding by finding, that each `fix` is actually addressed in the sealed revisions — not
-   merely that a revision mentioning it exists.
-5. Set **Status** to `accept` and hand it to the maintainer.
+   does (§3). One coherent topic each, with a real "Done when" clause. **The findings are the spec —
+   quote them.** One plan stays one arc. In a grouped arc (§8) they are appended at the end of the
+   group whose review found them, so a fix stays inside the pull request it repairs.
+2. These todos are a replan (§9, *Replanning*): where the challenge phase is installed, run §9's
+   small-end pass over them first, sort its findings into this section's `fix`/`note`/`ask` buckets,
+   and correct the todos for the `fix` ones. Writing them leaves the replan's trace.
+3. Set the PR heading `running`, then run the ordinary loop, which finds the `fix*` todos as the open
+   ones and whose exit writes `accept` again. **Print the fix todos before you start so the user can
+   interrupt**; you do not need their approval for mechanical fixes, but they must be able to see
+   them coming. Then take the occupancy reading afresh before the first fix todo starts (§8): the arc
+   review sealed nothing, so no seal has read it for you. A handoff here is resumed from the PR's
+   heading and the review log (§11, *Reading it*), never back into §11's lens fan-out.
+4. **Then you alone do the final review** — what the log sends a session to once the PR is back at
+   `accept` and its last line names the fix todos. No lens fan-out this time. Walk the `review.md`
+   list and confirm, finding by finding, that each `fix` is actually addressed in the sealed
+   revisions — not merely that a revision mentioning it exists. Findings the maintainer reported
+   after the triage closed are triaged here too: new `fix<n>` todos for them are logged as
+   `fix todos: …` first and take steps 1 to 3 again. A `fix` still not addressed stops instead
+   (§13). When every fix is addressed, log `confirmed`.
+5. `confirmed` closes the automatic read; the PR is already at `accept`. Hand it to the maintainer
+   (§13).
 
 **Do not plan a fix arc for the fix arc's findings, whatever the finding reads like.** An agent loop
 that keeps re-reviewing its own repairs stops converging and starts inventing work.
@@ -2967,9 +3219,16 @@ that keeps re-reviewing its own repairs stops converging and starts inventing wo
 
 ### The handoff message
 
-Reaching `accept` means the agents have run out of findings. **It does not mean the arc is finished;
-whether it is finished is the maintainer's call, made by actually using the thing.** This phase asks
-for that and stops.
+**The handoff happens when the review log says the automatic read is closed** — `triage closed —
+nothing to fix`, or `confirmed` (§11) — so the PR is waiting on the maintainer. Not when the heading
+reads `accept`: the loop writes that before the agents have read anything. A closed read means the
+agents have run out of findings. **It does not mean the PR is finished; whether it is finished is
+the maintainer's call, made by actually using the thing.** This phase asks for that and stops.
+
+**The maintainer hears earlier that they can start.** At Standard, the clause §7's step (e) appends
+to the progress line when the loop writes `accept` also names `/test-arc <absolute plan directory
+path>` as taking their findings now — one clause, asking nothing, since their testing may read
+beside the agents' (§14).
 
 Produce **one message, then wait.** It is a request for a review, not a completion report — do not
 keep working after sending it.
@@ -2996,6 +3255,11 @@ Then:
   alone during the loop, a `note` finding deliberately left, anything a lens flagged but could not
   settle.
 - **What I could not check** — carried over verbatim from `review.md`.
+- **What changed, finding by finding** — *only when this read or its test round holds findings the
+  maintainer reported.* One line per such finding: the revision that addressed it, or the reason it
+  was not changed, or where it is blocked, or the bucket the read's triage put it in. **Every finding
+  they reported gets its own line, however it was taken** — into a round, or into the agents' read —
+  so they can re-test exactly what they reported instead of re-reading the whole diff.
 - **The ask** — the decision itself: what is wrong, in the maintainer's own rough words, however
   unpolished.
 
@@ -3007,13 +3271,15 @@ costs one planning pass and one loop, and nothing is published until they are sa
 
 **This phase ends the session.** This conversation has nothing left in it that the next one needs.
 
-**Only the maintainer's word moves Status from `accept` to `done`.** Nothing else does — not a clean
-gate, not another lens pass, not your own read of the diff. (The one exception is a meta-arc's close
-by the store's role, §21, which runs on its own evidence and never on any of those three.) Where
-journeys are installed, a `done` that leaves every other arc of the journey settled also asks the
-maintainer, in the same reply, whether the journey is over (§8). In a grouped arc this handoff is one
-pull request's, and `done` waits until no PR holds an open todo (§8, *Grouping an arc into pull
-requests*).
+**Only the maintainer's word moves a PR from `accept` to `done`**, and the arc follows with its last
+PR. Nothing else does — not a clean gate, not another lens pass, not your own read of the diff. (The
+one exception is a meta-arc's close by the store's role, §21, which runs on its own evidence and
+never on any of those three.) On their *finished*, write the PR heading `done`, and the arc's
+**Status** `done` too when every other PR is already `done` — in an arc of one PR, both at once.
+Where journeys are installed, an arc's `done` that leaves every other arc of the journey settled also
+asks the maintainer, in the same reply, whether the journey is over (§8). In a grouped arc this
+handoff is one pull request's, and their *finished* is a go for that PR alone (§8, *Grouping an arc
+into pull requests*).
 
 > **Want another round rather than dread it.** A defect named now, while the diff is still in
 > everyone's context, is a fix todo. The same defect named in a week is a fresh investigation of code
@@ -3021,16 +3287,32 @@ requests*).
 
 ### Escalating to the user
 
-Stop and hand over when: the `ask` bucket is non-empty, the fix arc leaves any `fix` finding
+Stop and hand over when: the read has an unanswered `ask`, the fix arc leaves any `fix` finding
 unaddressed, a fix todo stalls under the progress judgement, or a tester was blocked on something you
 may not resolve.
 
-Set **Status** to `needs-human`, make sure `review.md` is current, and give the user, through whatever
+**A stop is no status.** Leave the PR heading and the review log where they are — no `triage closed`
+while an `ask` is open. Make sure `review.md` is current, with each finding the run stops on recorded
+as an entry in the read's `ask` bucket (a question about one todo goes in that todo's own file
+instead, as step (c)'s `design-question` does), and give the user, through whatever
 structured-question mechanism the harness offers:
 
 - each unresolved finding, in one line, with which lens raised it
 - what was attempted and what happened
 - the options you can see, **with a recommendation — but do not decide**
+
+**An answer is recorded where the question is.** A `design-question` todo leaves that status when
+answered, the answer written beside the question. An `ask` in `review.md` gains an indented line
+beneath it, `answered <date>: <answer>`, written by whichever session receives the answer — the one
+that asked, or a later one that listed the question on resuming. **A resumed session lists every open
+question first** — a `design-question` todo, or an `ask` with no `answered` line — before choosing
+any work, and an `ask` carrying its `answered` line is never listed again.
+
+> **Why the question lives where it was asked.** The originating system once moved the arc to a
+> stopped-for-the-human status on every escalation. The value came to mean two unrelated things — a
+> challenge stalled on an unapproved plan, and a run that stopped — and routing read it as a run
+> state, handing a plan nobody had approved to the run phase. A question recorded where it was asked
+> is found by the session that reads that place anyway, and needs no status to be found.
 
 ---
 
@@ -3040,13 +3322,14 @@ structured-question mechanism the harness offers:
 `arc-triage.md`. This is the second and last section in Part II that creates a skill of its own; §10
 through §13 were all edits to `run-arc`.
 
-A **test round** turns what the maintainer found while actually using the arc into todos a coder can
-pick up.
+A **test round** turns what the maintainer found while actually using a pull request into todos a
+coder can pick up — or, while the agents are still reading that PR, hands their findings to that
+read.
 
 ```yaml
 ---
 name: test-arc
-description: Plan a test round from the maintainer's findings after they have tested an arc sitting at Status "accept" — splits the findings into a numbered list, triages each one with arc-triage, and writes coder-ready todos back into the plan directory for a fresh /run-arc session.
+description: Plan a test round from the maintainer's findings after they have tested a pull request whose code is done — a PR at `accept`, whether or not the agents' read of it has closed — splits the findings into a numbered list, triages each one with arc-triage, and writes coder-ready todos back into the plan directory for a fresh /run-arc session, or, while the agents' read is still open, hands the triaged findings to that read.
 argument-hint: "[plan directory] [findings]"
 ---
 ```
@@ -3054,14 +3337,36 @@ argument-hint: "[plan directory] [findings]"
 ### Entry
 
 The maintainer invokes this with findings — pasted into the conversation, or already in a file under
-the plan directory. If the plan directory is not named, find the most recently updated one whose
-**Status** is `accept` and **confirm it before doing anything else** — guessing wrong here means
-triaging findings against the wrong arc. Where journeys are installed (§8), search arc directories
-at both depths, and resolve a journey argument to its arc at `accept`, not to its current arc.
+the plan directory. If the plan directory is not named, find the most recently updated one with a
+PR that can be tested, and **confirm it before doing anything else** — guessing wrong here means
+triaging findings against the wrong arc. Where journeys are installed (§8), search arc directories at
+both depths, and resolve a journey argument to an arc with a PR that can be tested, not to its
+current arc.
+
+**Which PR can be tested is decided by the PR's own heading, never the arc's Status**, together with
+its last line in `review.md`'s review log (§11). A PR can be tested when its code is done and it is
+not merged:
+
+- **At `accept`, whether or not the agents' read has closed.** The originating maintainer: *"As soon
+  as everything is coded, I start reviewing, and agents as well. Only when we are done, external
+  reviewers enter the game."* Their testing reads **beside** the lenses, so findings may arrive
+  while the read is still open.
+- **During that read's own fix pass** — at `planning` or `running` with the last line `triage closed
+  — fix todos: …` or `fix todos: …`. The read is open here too.
+- **Not at `done`**, and **not a PR with other code still to be written** — `planning` or `running`
+  with no log of its own, or with a last line of `reopened`, a round or a replan being coded.
+  Findings on it wait for its own end.
+
+**A PR at `planning` whose last line is `confirmed`, `triage closed — nothing to fix` or `reopened —
+test round <N>`** is a round an earlier session was cut off in (step 4 writes the heading first).
+Finish that round — whatever of step 4's writing and step 5's `running` write is missing, reusing
+the reports and todo files already on disk — rather than opening another.
+
+**Decide which PR the findings are about here, before step 1.** In an arc of one PR it is PR 1.
 Where grouping is installed (§8), a round may also be about an earlier, handed-off pull request
-while a later one is under way: decide which PR here, before step 1, hand the triage that PR's diff,
-head the round with its PR and its own Round base, and move no Status on a live arc — that
-subsection's *A round on an earlier PR* has the rules.
+while a later one is under way: match a PR URL or number in the findings against the recorded pull
+requests, ask once where nothing matches, and follow that subsection's *A round on an earlier PR*.
+The PR decided here is what every step below means by "the PR".
 
 **Do not re-derive the repo contract.** House rules — both gates and any arc-specific scope fences —
 and the **Value** bullet carry over unchanged from planning. Do not re-detect the VCS, re-run the
@@ -3082,13 +3387,16 @@ merged, so make the split visible and let the maintainer see it land the way the
 Spawn one `arc-triage` per finding, **all in a single message** — they are independent, and reading
 the findings against the code is exactly the reading this phase exists to keep out of the planner's
 context. Each brief carries: the finding **verbatim**, the plan directory's absolute path, the exact
-command that prints the arc's cumulative diff, and the two gates.
+command that prints the PR's diff — the arc's cumulative diff for an arc of one PR — and the two
+gates.
 
 **Do not open the diff or the code yourself first "to help."** That reading has to happen exactly
 once, in the triage agent's disposable context, or the whole reason for the fan-out is gone.
 
 Write each report to `research/test<N>-<slug>.md`, so a later coder can be pointed at the report
-instead of having its contents retold in a todo's **Spec**.
+instead of having its contents retold in a todo's **Spec**. `N` is the next round number unused —
+one with no `## Test round <N>` section and no `research/test<N>-*` report. Findings handed to an
+open read write no round, so their `N` is spent on the reports alone.
 
 ### 3. One question round, or none
 
@@ -3113,6 +3421,14 @@ specific question collected here**, not merely that the report's general topic c
 
 ### 4. Write the todos and this round's index
 
+**Only a PR whose automatic read is closed gets a new round.** While the read is open, this step
+writes no todo, no round section and no Round base — step 5 says where the findings go instead (a
+redesign, below, is the one exception). Where the read is closed and the round has todos to write,
+begin with the two reopening writes: the PR heading `planning`, then the `reopened — test round <N>`
+line in the review log (§11) — heading first, so a session cut off between the two leaves a PR at
+`planning` that *Entry* recognises, not an `accept` with a `reopened` line that reads as a read not
+yet started.
+
 Write `todos/test<N>.1-<slug>.md`, `test<N>.2-…`, … — the same todo shape a normal arc uses, sized
 and worded by the planning phase's own rules.
 
@@ -3127,9 +3443,9 @@ and worded by the planning phase's own rules.
 contain.** A Spec saying "verify X against `research/foo.md`" is a claim that `foo.md` settles X.
 Where it does not, the todo either names what does, or the fact is ruled first.
 
-Add a `## Test round N` section to `README.md`'s index listing this round's todos — **each entry
-carrying its own summary bullets** the way every other index entry does (§3) — immediately followed
-by:
+Add a `## Test round N (PR <k>)` section to `README.md`'s index — PR 1 in an arc of one PR — listing
+this round's todos, **each entry carrying its own summary bullets** the way every other index entry
+does (§3), immediately followed by:
 
 - a **Not changed** list naming every `not-a-defect` finding and the reason its triage report
   gave, and every deferred finding as `deferred — <where it went>`;
@@ -3140,45 +3456,66 @@ by:
 either.** Append the round's own question answers, rejected alternatives and replan line to
 `decisions.md` (§3).
 
+**Every round records its own Round base**, a `- **Round base:**` bullet directly under its heading:
+the PR's tip at that moment, recorded as a fixed point (an id that will not resolve to something
+else once later revisions are sealed), written when the section is. `/run-arc` reads it there — its
+read of the round runs from it (§11) — and writes none of its own, so a session resuming mid-round
+never rewrites it at a moved tip, and two rounds open on different PRs never overwrite each other.
+
 **The round's todos are a replan** (§9, *Replanning*): once they and the index are written, and
 where the challenge phase is installed, run its small-end pass over them. The triage already read
 the code for each finding, so the pass checks the todos' premises, not the findings. A round that
 produced no todos runs no pass.
 
-**Redesign in this arc.** Where step 3's answer is a redesign, write the `## Test round N` section as
-above — **Not changed**, **Blocked**, and in a grouped arc its Round base — plus one line per finding
-the redesign is to answer, naming its triage report, and write no todos: the re-entered planner
-writes them as this round's `test<N>.<k>` todos and joins them to those lines (§9, *When `/plan-arc`
+**Redesign in this arc.** Where step 3's answer is a redesign, write the `## Test round N (PR <k>)`
+section as above — **Not changed**, **Blocked**, its Round base — plus one line per finding the
+redesign is to answer, naming its triage report, and write no todos: the re-entered planner writes
+them as this round's `test<N>.<k>` todos and joins them to those lines (§9, *When `/plan-arc`
 re-enters an arc that holds work*). The redesign lands in this arc, and in a grouped arc in this
 pull request, because that is where the maintainer needs it: *"Often I need the fix in the same
 PR."*
 
 **Not beside a live run.** Where grouping is installed and this round is about an earlier pull
-request while another is under way, a redesign is **not** started (§9, *Replanning*): it becomes an
+request while another is `running`, a redesign is **not** started (§9, *Replanning*): it becomes an
 ordinary **Blocked** line with its report path, and the handoff tells the maintainer to bring it
 back to `/test-arc` once the live pull request is at `accept` and this round's todos, if any, are
-sealed — a round is taken only on a pull request holding no open todo (§8). A pass run beside a live
-run briefs the live pull request's todos as **read-only** — never an edit target, though a lens may
-report one as invalidated, and that report goes into the handoff for the maintainer to raise in the
-live session — and tells the lens to read file contents at the earlier pull request's tip, never
-from the working directory, which is the live one's.
+sealed. A pass run beside a live run briefs the live pull request's todos as **read-only** — never
+an edit target, though a lens may report one as invalidated, and that report goes into the handoff
+for the maintainer to raise in the live session — and tells the lens to read file contents at the
+earlier pull request's tip, never from the working directory, which is the live one's.
 
 ### 5. Hand off
 
-**A redesign in this arc, at `accept`:** write §9's mid-replan note, with `accept` as the Status
-left and the findings' triage reports named, and its `decisions.md` line saying which findings the
-redesign answers. Set **Status** to `planning` and hand back `/plan-arc <absolute plan directory
-path>` instead of `/run-arc`; the no-todos clause below does not apply. Where journeys are installed
-(§8), add one sentence, mentioned and not offered as a branch: once this arc is settled, the redesign
-could instead be planned as the journey's next arc.
+The hand-off follows from the tested PR's read. Only the tested PR's own heading is ever written
+here, and the arc's **Status** only for a redesign.
 
-Otherwise, set **Status** to `ready` and hand it to a new `/run-arc <absolute plan directory path>`
-session — this session has already spent its context on findings that session does not need to
-re-read.
-
-**Unless this round produced no todos at all** — every finding triaged `not-a-defect`; the redesign
-branch above is not this case. Then leave **Status** at `accept` and drop the `/run-arc` line
-entirely: `ready` would send a fresh session to an arc with nothing to run.
+- **While the PR's automatic read is open**, write **no round and no todos** (a redesign, below, is
+  the one exception). Append the triaged findings to that read's section in `review.md` as one more
+  source beside the lenses' — each with its verdict and its triage report — and the read's triage or
+  final review handles them from there (§12, *Nothing is dropped between reads*). **Re-read the PR's
+  last log line just before writing**: a read that closed since *Entry* takes the next bullet's round
+  instead. Where the read has not started yet, the findings get a section of their own in
+  `review.md`, headed as a read's section is, which the read starting next adopts. The hand-off says
+  where the findings went, and gives no `/run-arc` line while a session may be working the PR.
+- **Once the read is closed** — the PR waiting on the maintainer — a round that produces todos has
+  already written the PR `planning` and its `reopened` line (step 4); once the todos are written and
+  checked, write the heading `running`. No other PR's heading and not the arc's **Status** changes.
+  Hand it to a new `/run-arc <absolute plan directory path>` session — this session has already spent
+  its context on findings that session does not need to re-read. Beside a live run (§8, *A round on
+  an earlier PR*), the round is taken at the next PR boundary instead, and the hand-off says so and
+  gives no line to run now.
+- **A redesign in this arc:** write §9's mid-replan note, naming the tested PR and the status its
+  heading holds and the findings' triage reports, and its `decisions.md` line saying which findings
+  the redesign answers. Log `reopened — test round <N> (redesign)` on the PR when it holds any
+  review-log line, so the approval that follows adds no second one (§9, step 7) and the next read
+  stays scoped to the round. Set the arc's **Status** to `planning` and hand back `/plan-arc
+  <absolute plan directory path>` instead of `/run-arc`; the no-todos clause below does not apply.
+  Where journeys are installed (§8), add one sentence, mentioned and not offered as a branch: once
+  this arc is settled, the redesign could instead be planned as the journey's next arc.
+- **A round that produces no todos** — every finding `not-a-defect`, deferred or **Blocked**; the
+  redesign branch above is not this case. The PR stays at `accept`: no `reopened` line, no heading
+  write, and no `/run-arc` line, since there is nothing to run. The hand-off names every **Blocked**
+  and every deferred finding and where each waits.
 
 ### The round cap is a signal, not a stop
 
@@ -3211,7 +3548,7 @@ needs to write a todo for it — or decide that no todo is the right answer. **T
 happens here, in a disposable context, so it never has to happen again in the planner's.**
 
 Your brief gives you: the finding, verbatim; the plan directory path; the exact command that prints
-the arc's cumulative diff; and the build and test gates. You should not need to open anything under
+the diff of the pull request the round is about; and the build and test gates. You should not need to open anything under
 `todos/` — ordinarily the finding and the diff are what you are judging, not the history of how the
 code got there. `README.md`'s House rules and `decisions.md` may matter when you are deciding whether
 the behaviour the maintainer saw was *intended*; open them for that judgement, not as a starting
@@ -3219,7 +3556,7 @@ point.
 
 ## Your job
 
-Locate the code the finding is about, using the cumulative diff and the repo itself, and confirm by
+Locate the code the finding is about, using that diff and the repo itself, and confirm by
 **reading** whether the finding is real. **Do not take the maintainer's description of the cause on
 faith** — the symptom they describe and the defect that produces it are often two different places.
 Then return exactly one of these four verdicts.
@@ -3442,10 +3779,12 @@ already cleared, so a flat or rising count right after one is the judgement work
 interrupts nothing and the round proceeds in the same turn. A phase that never stalls should still
 show the maintainer the bill on every round it takes.
 
-**On a stall, stop.** Set **Status** to `needs-human` and escalate, naming the plan files needed to
-answer, with: the finding as the lens stated it; what each rework attempted and why the lens still
-rejects it; and what the phase has already spent. **A judgement with no fixed budget has to show the
-payer the price, not just the verdict.**
+**On a stall, stop.** Leave **Status** at `planning` — the arc has not been approved, and a stall
+is no new state of it — and escalate, naming the plan files needed to answer, with: the finding as
+the lens stated it; what each rework attempted and why the lens still rejects it; and what the phase
+has already spent. **A judgement with no fixed budget has to show the payer the price, not just the
+verdict.** The stall's record is the `unresolved` disposition below, and that is what outlives the
+session: a `/plan-arc` that re-enters the arc finds it there and puts it first (§9).
 
 **Record, do not rework, once a check finds a stall.** Each surviving finding is recorded as
 `unresolved — <what the rework attempted, and why the lens still objects>`, and exactly the failing
@@ -3497,7 +3836,7 @@ plan cannot settle it by reasoning** — two attempts to fix it by thinking have
 third fan-out costs more than a question would. Count **repairs, not findings**: a todo drawing two
 findings in one round has been repaired once, since the rework acts on the whole triage in one pass.
 Fire **once every lens of the round has returned and before that round's rework begins**, batching all
-of that round's qualifying todos into one question. This does **not** set Status to `needs-human` — it
+of that round's qualifying todos into one question. Status stays `planning` here too; the question
 is answered within the same live session.
 
 ### `challenge.md`
@@ -4141,9 +4480,10 @@ under work. Every agent in the roster gets an extra optional output line:
 ```
 FINDING: <optional, repeatable — an observation about the arc system, the tips files, or an agent
   brief itself; omit if none>
-  [This finding is for the supervisor to keep and act on: record it as an entry in
-  observations/<subtopic>.md, in the format observations/README.md gives; otherwise carry it to
-  the maintainer at the handoff.]
+  [This finding is for the supervisor to keep and act on: if you hold the store's role, record it
+  as an entry in observations/<subtopic>.md, in the format observations/README.md gives; otherwise
+  send it as a message to a session that holds the role, falling back to the maintainer at the
+  handoff only when none can be reached.]
 ```
 
 with an explicit fence in each brief: `FINDING:` is **never** for a defect in the repo under work or
@@ -4225,10 +4565,39 @@ system-improvement arc, and no recommendation that one follow — that is the ma
 **Who holds the role, and its one authority.** Any main-loop session running in the repository
 that holds the system's own files — the one where this store lives — holds the role: a test of the
 session's place, not an identity it has to be handed. A subagent never does, and neither does a
-session in any other repository; those carry a finding to the maintainer at their handoff instead.
+session in any other repository; those pass a finding on as *Constant improvement* below says.
 Proposing a system-improvement arc is as far as the role reaches for *starting* one. **Closing one
 is the role's, though**, where watch orders (§21) are installed: see §21 for when it closes a
 meta-arc and what the close writes.
+
+### Constant improvement
+
+The system is changed while arcs are planned and run against it, so every session in it — in any
+repository — works under two rules, which the originating maintainer stated in one breath: *"1.
+Improvements should go back to you as a session-to-session message. 2. Changes are happening all the
+time, if something seems inconsistent, give feedback and if you can't figure out on your own ask a
+human."* Write them as a closing section of `run-arc`, cited by one line at the end of `plan-arc` and
+`test-arc` and by the `FINDING:` field above.
+
+1. **Improvements go back as a message.** A session holding the store's role records a finding
+   itself. Any other session sends what it notices about the system, a tips file or an agent brief —
+   its own observations and the `FINDING:` lines its subagents return — **as a message to a session
+   that holds the role**, where the harness lets one session message another (Claude Code: list the
+   running sessions, then send). Only when none can be reached, or the delivery is refused, does it
+   carry the finding to the maintainer at its handoff, for a later session holding the role to
+   record. A finding carried to the handoff waits for a maintainer to relay it; a message reaches the
+   store while the session that noticed it still has the context to answer a question about it.
+2. **The system changes all the time.** Skills, briefs and plan formats may change under a running
+   session, so it may meet a plan, a skill or a sibling session written under a different version —
+   a plan in an older format included, **which no skill converts**. Where something seems
+   inconsistent, send feedback per point 1; where the session cannot work out what to do, it asks a
+   human rather than guessing. This is what lets a change to the system land without transitional
+   rules in every skill: the originating maintainer, on whether to carry a mapping of the old status
+   values forward, *"Old plans just break. Supervisors have to figure it out and ask. This is better
+   than carrying tons of rules forward."*
+
+Without the store installed, point 1 has no recipient: findings go to the maintainer at the handoff,
+as before. Point 2 holds regardless.
 
 ---
 
@@ -4325,13 +4694,21 @@ duration.
 second look or collects observations forever. A phase is **answered** when every bullet on its fired
 list is recorded as *observed* or *not observed*. A bullet only a downstream meta-arc could show,
 recorded *not applicable* by an ordinary arc, leaves the phase open for one that can. It is
-**closed** when Status moves to `done`.
+**closed** when the arc moves to `done`.
+
+**The pool the check scans** is the `underway` arcs with a watch order whose PRs are all `done` or
+waiting on the maintainer (§8, *The Status vocabulary*: `accept`, the automatic read closed). A
+`done` arc is not in it, nor is an arc whose read is still open, nor one with a PR sent back to
+`planning` or `running` by a test round, a fix todo or a small replan — it returns once that PR is
+waiting on the maintainer again. So a watched arc's round has to be run to completion: left half-run,
+the arc silently stops being scanned, with nothing anywhere saying so. Telling the two kinds of
+`accept` apart costs the scan one read of each PR's last review-log line (§11).
 
 **Who closes it.** Without the observation store (§19), the maintainer, by their word, as for any
 arc. **With the store installed, the session holding its role closes a meta-arc itself**, once the
 evidence is in, and the maintainer's word still always works. The reason is specific to meta-arcs:
-their todos are instructions nothing in their own diff can exercise, so `accept` and `done` differ by
-nothing the maintainer can perform, and leaving the write to them left arcs parked indefinitely on a
+their todos are instructions nothing in their own diff can exercise, so a PR's `accept` and `done`
+differ by nothing the maintainer can perform, and leaving the write to them left arcs parked indefinitely on a
 decision they had no basis to weigh. Every other arc stays the maintainer's to close, because only
 their testing makes that `done` mean something. The close runs at any handoff's watch-order check, or
 whenever the maintainer asks.
@@ -4342,6 +4719,9 @@ whenever the maintainer asks.
   such a repository exists, the evidence is pending and the arc waits. **A missing event is not a
   missing shape:** a bullet waiting on something that has simply not happened yet — a threshold no
   session has crossed — stays pending.
+- **Only where every PR is `done` or waiting on the maintainer.** The close writes `done` on each PR
+  still waiting and on the arc, so a PR whose read is still open, or that holds an open todo, keeps
+  the arc `underway` whatever its observations say; the check's line names that PR.
 - **Two exits, both writing `done`, never anything else.** *Works*: every bullet observed, or
   allowably not applicable — the arc's Status bullet names the observation that answered each phase.
   *Needs rework*: any bullet recorded *not observed* — the Status bullet names those bullets, a new
@@ -4350,19 +4730,15 @@ whenever the maintainer asks.
   bullet also names the repositories checked, so a later reader can audit which silences were
   allowed to count.
 
-Where grouping is installed (§8), a grouped arc at a **mid-arc `accept`** — any pull request still
-holding an open todo — is one PR's handoff, not the arc's: it is not a parked order, the scan leaves
-it out of the pool, and the store's role never closes it, whatever its observations say.
-
 **If the user also keeps a portable extraction of their system** — a file like this one, re-extracted
 from their own corpus as a coherence test: a corpus that cannot be extracted coherently has an
 incoherence in it, though a clean extraction says nothing about whether the rules help — **the
-meta-arc's `accept` handoff in the system's own repository says, in one line, that an
-extraction is owed**, with a copy-pasteable line that starts it in a fresh session. It announces and
-never runs the extraction: reading the whole corpus in a session the handoff is about to end is the
-wrong place for it. At `accept`, not `done`, because a meta-arc's `done` can lag by weeks on
-watch-order evidence, and an incoherence is cheapest to attribute right after the arc that
-introduced it. In a grouped meta-arc the line waits for the arc's own `accept`, not a PR's.
+meta-arc's handoff in the system's own repository says, in one line, that an extraction is owed**,
+with a copy-pasteable line that starts it in a fresh session — at the handoff where no PR holds an
+open todo any more, not at an earlier PR's. It announces and never runs the extraction: reading the
+whole corpus in a session the handoff is about to end is the wrong place for it. At the handoff, not
+at `done`, because a meta-arc's `done` can lag by weeks on watch-order evidence, and an incoherence
+is cheapest to attribute right after the arc that introduced it.
 
 > **Measured: a rule with no trigger does not fire.** The originating system's extraction rule lived
 > only in its observation store and in the extraction's own repository, which no session reads on
@@ -4370,9 +4746,10 @@ introduced it. In a grouped meta-arc the line waits for the arc's own `accept`, 
 > maintainer noticed and briefed a session by hand. Putting the line in the handoff the meta-arc
 > already passes through is what makes it fire every time.
 
-**What it costs.** A section in some plans, a check at every handoff of every arc, and arcs that sit
-at `accept` for days or weeks waiting to be answered. **An arc parked at `accept` is the mechanism
-working, not a stalled handoff** — but a maintainer who does not know that will read it as one.
+**What it costs.** A section in some plans, a check at every handoff of every arc, and arcs whose
+PRs wait on the maintainer for days or weeks to be answered. **A meta-arc parked that way is the
+mechanism working, not a stalled handoff** — but a maintainer who does not know that will read it as
+one.
 
 **What it buys.** The only honest test that exists for an arc whose product is instructions.
 
@@ -4721,7 +5098,7 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
   colleague's remark is not the maintainer's finding until they say so; and failing CI. Take the
   time *before* the first read and store it, after a read that succeeded, in a
   `- **Forge read:** <UTC timestamp>` bullet, so each comment is reported once; a failed read says
-  so and leaves the bullet alone. **The read acts on nothing**: it moves no Status and no todo, and
+  so and leaves the bullet alone. **The read acts on nothing**: it moves no status and no todo, and
   answers no comment.
 
 ### Also settle, in one line each
@@ -4776,8 +5153,10 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
   notes in files an agent is told to read by name.** A subagent inherits the instruction-file
   hierarchy but **does not** inherit an on-demand file, so an agent that needs those rules must be
   told to read that file explicitly.
-- **A statusline script, backup-push rules, a session-memory protocol, cross-session messaging.** All
-  machine infrastructure, none of it the arc system.
+- **A statusline script, backup-push rules, a session-memory protocol.** All machine infrastructure,
+  none of it the arc system. (Cross-session messaging used to sit on this list; it is now how a
+  finding reaches the store, §19's *Constant improvement*, so only its harness mechanics are left
+  out.)
 
 ### Compressed, and what was compressed out
 
@@ -4934,14 +5313,18 @@ Work through this with the user. Tick each line out loud.
 - [ ] There is exactly **one** `<home>/skills/run-arc/SKILL.md` — §10 through §13 were merged
       into the file §7 wrote, and no second run-arc skill exists anywhere. Check by listing
       `<home>/skills/`; this failure is silent otherwise.
-- [ ] The Status vocabulary (§8) is in both skills and they agree, `aborted` included.
+- [ ] The two statuses (§3, §8) are in every skill and they agree: each PR's in its `### PR <k>`
+      heading (`planning`/`running`/`accept`/`done`), the arc's in its bullet
+      (`planning`/`underway`/`done`/`aborted`), and no stop for the maintainer writes either. Every
+      index has at least `### PR 1`. `review.md` opens with the review log (§11), and every reader
+      that must tell a PR still being read from one waiting on the maintainer reads its last line.
 - [ ] `plan-arc`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
       index summary rather than a second list.
 - [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
       places that append to an index afterwards (§12, §14).
 - [ ] Replanning (§9) is defined once, in `plan-arc`, and cited rather than restated from
       `run-arc`'s `needs-replan` and `design-question` branches, its review-fix arc (§12) and
-      `test-arc`'s rounds (§14); `plan-arc` has its re-entry path and step 7's Status mapping; the
+      `test-arc`'s rounds (§14); `plan-arc` has its re-entry path and step 7's approval writes; the
       loop picks every open todo by status, never by id, and `--only` / `--from` take a todo id.
 - [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no new
       revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written, its
@@ -4961,21 +5344,23 @@ Work through this with the user. Tick each line out loud.
 - [ ] UI tester: the brief, plus the "is the app up?" check **before the loop**, in both skills.
 - [ ] Human coding seat and spike queue: only for a maintainer who actually codes alongside the
       agents, and only on a workspace-capable VCS. Quote §18's costs **and** its objective together.
-- [ ] Observations store: the protocol file, and the `FINDING:` line added to every brief.
+- [ ] Observations store: the protocol file, the `FINDING:` line added to every brief, and the
+      *Constant improvement* section in `run-arc`, cited from `plan-arc` and `test-arc` (§19).
 - [ ] Citation gate: only for a prose corpus.
 - [ ] Watch orders: only if the user writes agent instructions as a deliverable. With the
       observations store also installed, the store's role closes a meta-arc on evidence (§21), and
       every other arc is still closed by the maintainer's word alone. If the user keeps a portable
-      extraction of their system, the meta-arc's `accept` handoff announces that one is owed (§21).
+      extraction of their system, the meta-arc's last handoff announces that one is owed (§21).
 - [ ] Journeys (§8): only for a user whose work regularly outgrows one arc. Every skill tells an arc
       directory by its `todos/`, never by a House rules section; a journey argument never runs an
-      arc at `planning` or `needs-human`; observation files and workspaces are named by arc id; a
+      arc at `planning`; observation files and workspaces are named by arc id; a
       journey's `over` is the maintainer's answer to a question, never written on the writer's own.
 - [ ] Grouping an arc into pull requests (§8): only for a team whose arcs reach review as pull
       requests and are sometimes too large for one. The grouped rules sit in `run-arc`'s on-demand
-      companion file, read on the three README markers, and the run stops if that read fails; one
-      definition of *a PR holds an open todo*, cited everywhere; a mid-arc `accept` is never settled
-      for routing; the lens and triage briefs get one PR's diff.
+      companion file, read only when the index has more than one `### PR` heading or a round on
+      another PR, and the run stops if that read fails; one definition of *a PR holds an open todo*
+      (§4), cited everywhere; a PR waiting on the maintainer beside a later `running` one is never
+      settled for routing; the lens and triage briefs get one PR's diff.
 - [ ] With a pull-request workflow (§24 Q6): the reviewed guard, not a published one; the forge read
       at every session start, with its `**Forge read:**` timestamp; each PR's URL and bookmark
       recorded.
@@ -4986,4 +5371,5 @@ Work through this with the user. Tick each line out loud.
    from there.
 2. **The one rule to never bend is that the supervisor does not write code.** Everything else here is
    negotiable; that one is what keeps the context flat and the review independent.
-3. **An arc is not finished when the agents run out of findings.** It is finished when they say so.
+3. **A pull request is not finished when the agents run out of findings.** It is finished when they
+   say so.
