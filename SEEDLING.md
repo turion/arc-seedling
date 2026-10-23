@@ -160,7 +160,8 @@ of the system that keeps these is still the arc system; one that drops any of th
 5. **Subagents are disposable; the plan directory is the durable state.** A subagent inherits no
    conversation history — anything left out of its brief is invisible to it. Correspondingly,
    anything not written into the plan directory does not exist. The run must be resumable from the
-   directory alone, by a session that was never there.
+   directory alone, by a session that was never there — or by the same session after a compaction,
+   which keeps a summary of the conversation and nothing it can be trusted with verbatim.
 
 6. **The maintainer decides what the software should mean; agents decide everything mechanical.**
    Domain semantics, what a type should represent, whether a distinction is worth carrying, what the
@@ -178,8 +179,8 @@ often lost in adaptation:
 ## 3. The plan directory (Core)
 
 The plan directory is the arc. It lives **outside the repository under work** — typically
-`<home>/plans/arc-<slug>/`, or `plans/journey-<slug>/` once journeys (§8) are installed — so
-that planning churn never appears in the repo's own history, and
+`<home>/plans/arc-<slug>/`, or `plans/journey-<slug>/arcs/01-<slug>/` once journeys (§8) are
+installed — so that planning churn never appears in the repo's own history, and
 so that a plan survives a branch being deleted.
 
 > **Consequence to state to the user:** the plan directory is not tracked by the repo it documents.
@@ -257,7 +258,7 @@ The one status the index does carry is the **pull request's**, in its own `### P
 status: <value>` heading, and it lives nowhere else: no todo file repeats it, so it is still one fact
 in one place. Every arc has at least `### PR 1`, even where the repository has no pull requests:
 the heading is the home of the status of *the code the arc delivers*, and an arc with a status and
-no heading to hold it would be a second shape every skill had to branch on.
+no heading to hold it would be a second shape every phase had to branch on.
 
 ### Two statuses: the arc's and its pull request's
 
@@ -277,7 +278,7 @@ an agent may write the todos, write the code or read it; the value says which of
 it was, and the question is recorded where it was asked — a todo's own file, at Core — so a resumed
 session finds it there.
 
-At Core, with no planning skill, approving the hand-written plan is the maintainer's word, and it
+At Core, with no planning phase, approving the hand-written plan is the maintainer's word, and it
 writes the arc `underway` and PR 1 `running` (§7 does it if they have not). The loop writes `accept`
 when PR 1 has no open todo left; the maintainer's *finished* writes PR 1 and the arc `done`. Standard
 adds who writes each transition at every other moment (§8, *The Status vocabulary*).
@@ -394,7 +395,7 @@ transcript — a question with no real answer leaves no line. Not a second copy 
 conventions.
 
 It is cumulative, never replaced. It is the only thing that survives the planning conversation, and
-it is what makes a fresh session safe to start.
+it is what makes a compaction, or a session that was never there, safe to resume from.
 
 ### Sizing the todos
 
@@ -559,9 +560,9 @@ Rewrite that todo's own file — **and nothing else**:
   The arc review's brief needs exactly this, and otherwise only the supervisor's own memory carries
   it, which a resumed session does not have.
 
-**This rewrite is the durable state of the run. It is what replaces compaction. Do it every time,
-before starting the next todo.** Leave `README.md`'s index alone — it changes only when a todo is
-*added* or a **PR's** status changes, never when a todo changes status.
+**This rewrite is the durable state of the run. It is what a compaction leaves intact. Do it every
+time, before starting the next todo.** Leave `README.md`'s index alone — it changes only when a todo
+is *added* or a **PR's** status changes, never when a todo changes status.
 
 **When the loop exits with no open todo left in the PR, write its heading `accept`.** A PR **holds an
 open todo** while any of its todos is unsealed, counting every todo appended to it later, and not
@@ -600,6 +601,46 @@ todo, for each todo left at `in-progress`:
 - **No such revision, working copy dirty** → **stop and ask.** Do not absorb someone else's
   uncommitted work into a revision.
 
+### Carrying on through compaction
+
+**The session carries on through the harness's automatic compaction** — across todos, and once
+Standard is installed across phases and pull requests too. Nothing in this design ends a session on
+its size. Three rules make that safe, and the supervisor skill (§7) states all three:
+
+- **Do not wrap up early, hurry, or skip a step to save context.** Tell the session, in its skill,
+  that its context is compacted automatically when it fills. Anthropic's prompting guidance advises
+  exactly this, so that a model does not "try to wrap up work as it approaches the context limit";
+  without it, a long unattended run is where a session hurries or drops a step.
+- **Write the plan directory current at every decision, as it is made** — a todo status, a record,
+  an answered question — never batched for a later moment. A compaction cuts wherever it fires, so
+  a write saved for a seam is lost when the cut comes first. Step (e) is the main instance.
+- **After a compaction, re-read before acting**: the skill's core, the phase text the session was
+  following, and the arc's `README.md`. A step is taken from the text, never from the summary's
+  paraphrase of it. A summary paraphrases precisely the strings the loop needs verbatim — the gates,
+  revision ids, todo statuses — while keeping the conversational texture the loop has no use for;
+  and a skill body the harness re-attaches after a compaction can come back cut short (§5 says how
+  the skill is shaped so that nothing load-bearing is cut).
+
+What makes all three hold is one invariant: **the plan directory being current is what makes a
+compaction harmless** — and a session that is gone and resumed from the directory just as harmless.
+Stale, and the compaction summary is the only thing between the work and its loss, which is a state
+to get out of, not to build on. In a harness that does not compact, a session ends when its context
+is full and the directory resumes it, exactly as §4's reconciliation already does.
+
+**Optional at Core: a hook that names the re-read.** The core is itself a re-attached body, and the
+first dropped where several skills were invoked, so the third rule above can fail silently even in
+a Core-only install. Where the harness offers a hook on compaction, §8 gives the message to install
+and why it names so little.
+
+> **Why compaction replaced the session.** The originating system used to end a session at every
+> phase seam and at about half its context, handing the maintainer a line to paste into a fresh one.
+> That bought a context worth nothing to the next phase, at the price of the maintainer's attention
+> at every seam: they had to come back to start each session. Their ruling: *"With auto compaction,
+> sessions seem to be irrelevant … The only question is what the best auto compaction setting is"*,
+> and *"the big auto compaction advantage is that I can leave you working for a longer time."* The
+> trade is made for the maintainer's attention, not for cost; §8 says what it costs and §25 what is
+> still unmeasured.
+
 ---
 
 ## 5. Core setup: where files go and what they look like
@@ -612,8 +653,9 @@ todo, for each todo left at `in-progress`:
     arc-coder.md             a subagent definition
     arc-reviewer.md
   skills/
-    run-arc/
-      SKILL.md               the supervisor procedure, invoked as /run-arc
+    arc/
+      SKILL.md               the core, invoked as /arc: routing, and what every phase shares
+      RUN.md                 the run phase's text — read by the core, never invoked
   plans/
     arc-<slug>/              one directory per arc (see §3)
 ```
@@ -630,7 +672,7 @@ A subagent definition is a markdown file whose body is the system prompt, with Y
 ---
 name: arc-coder
 description: Implements exactly one todo from an arc plan directory. Edits the working copy only
-  and never touches version control. Returns a structured handover. Invoked by /run-arc.
+  and never touches version control. Returns a structured handover. Invoked by /arc's run phase.
 model: sonnet
 effort: high
 maxTurns: 150
@@ -677,36 +719,64 @@ A skill is a directory under `skills/` containing `SKILL.md`:
 
 ```yaml
 ---
-name: run-arc
-description: Execute an arc plan — get each open todo coded, gated and reviewed and seal exactly
-  one revision per todo, then review the finished arc and fix what it finds. Use after /plan-arc,
-  or when the user says "run the arc".
-argument-hint: "[plan path] [--only <todo id>] [--from <todo id>] [--review]"
+name: arc
+description: Plan, run and test an arc — an ordered list of todos, each sealed as exactly one
+  revision. Reads the plan's state on disk to pick the phase and carries on in this session. Use
+  when the user says "run the arc", "continue the arc", "plan an arc", or names an arc directory.
+argument-hint: "[arc directory] [plan|run|test] [what you want, or what you found] [--only <todo id>] [--from <todo id>]"
 ---
 ```
 
-**The skill name becomes the slash command.** `skills/run-arc/SKILL.md` with `name: run-arc` is
-invoked as `/run-arc <args>`. The `description` is what makes the harness load it unprompted when the
-user describes the task rather than typing the command, so write it to contain the words a user
-would actually say.
+**The skill name becomes the slash command.** `skills/arc/SKILL.md` with `name: arc` is invoked as
+`/arc <args>`. The `description` is what makes the harness load it unprompted when the user
+describes the task rather than typing the command, so write it to contain the words a user would
+actually say. (At Core there is only the run phase, so the description names only running until
+Standard adds the other two.)
 
-**Companion files.** A skill directory can hold other files the `SKILL.md` points at —
-`RATIONALE.md`, `CONCURRENCY.md`. These are **not** loaded automatically; the skill body has to tell
-the session to read them, and only then do they cost anything. This is the main lever for keeping a
-skill's resident cost down: everything a run does not always need goes in a companion file.
+**One command, one invoked body, every phase's rules in files it reads.** The skill directory holds
+other files the `SKILL.md` points at — at Core, `RUN.md`; with Standard, `PLAN.md` and `TEST.md`;
+later, a rationale file and the files of optional layers. These are **not** loaded automatically:
+the skill body tells the session to read them, on a stated trigger, and only then do they cost
+anything. That is the main lever for keeping a skill's resident cost down — everything a run does
+not always need goes in a file read only when it applies — and it is also what keeps the skill whole
+through a compaction. A harness that compacts may re-attach an *invoked* skill body cut short, while
+a file the session *read* is simply read again. So **the invoked `SKILL.md` stays small**: it holds
+the routing and what every phase shares, states its own size limit, and points at everything else.
 
-**Reference a companion file by the skill's own directory — in Claude Code,
-`${CLAUDE_SKILL_DIR}/NAME.md` — written in prose with the path in a code span, never as a markdown
-link.** The skill runs with its working directory inside the *target* repo, so a bare relative path
-does not resolve. Substitution into rendered markdown content is attested; substitution into a
-markdown *link target* is not, and the docs' own convention of a bare relative link is independently
-reported broken upstream.
+> **Measured, on Claude Code.** Its documentation says a compaction re-attaches each invoked skill
+> cut to its first 5,000 tokens, 25,000 tokens across all invoked skills, the oldest dropped first.
+> Post-compaction transcripts of version 2.1.289 showed four skills re-attached at exactly 20,000
+> characters each, ending *"[… use Read on the skill path if you need the full text]"*, and a
+> 5,435-character skill whole. The originating system's run skill was then about 203,000
+> characters, so a compacted session ran on its first tenth without knowing it. The core's cap was
+> set at **14,000 characters by `wc -m`**, under both the observed cut and the documented rule
+> (about 14,500 characters of that corpus's prose). At extraction the originating core sat 25
+> characters under it. Growth is asked about where it is found — at an arc-wide review
+> of a system-changing arc, or an extraction like this one — rather than gated. Measure the user's
+> own harness before trusting either figure.
+
+**A phase text or companion is read in full, by its absolute path, as the phase's first action.**
+Where the harness's read tool refuses a single read past some size — Claude Code's `Read` refuses
+one over 25,000 tokens, a ranged read included — read consecutive chunks to the file's last line,
+halving a chunk that still errors, and stop and ask only when the file is missing. A phase text
+grows past that limit at Standard: the originating run text measured about 37,000 tokens.
+
+**Reference a file by its absolute path or the skill's own directory, written in prose with the path
+in a code span, never as a markdown link.** The skill runs with its working directory inside the
+*target* repo, so a bare relative path does not resolve. Claude Code substitutes the skill-directory
+placeholder `${CLAUDE_SKILL_DIR}` into an **invoked** skill body only: substitution into rendered
+markdown content is attested, substitution into a markdown *link target* is not, and the docs' own
+convention of a bare relative link is independently reported broken upstream. **A file that is read
+rather than invoked gets no substitution at all.** So the core names each file it points at by its
+absolute path, and every read file opens with one convention line — *"`${CLAUDE_SKILL_DIR}` in this
+file means the directory that holds this file"* — before its first use of the placeholder.
 
 **When a skill edit takes effect.** In Claude Code, skill directories are watched, so an edited
 skill reaches the **next invocation**, which may be in the same session. But re-invocation
 **appends** the new body rather than replacing the old one, so a same-session re-invocation leaves
-both the stale and the new copy in context at once, competing. **After editing a skill, start a
-fresh session before using it.**
+both the stale and the new copy in context at once, competing. **After editing a skill's core, start
+a fresh session before using it.** An edited phase text or companion, being read rather than
+invoked, reaches the next read of it — a re-read after a compaction included.
 
 ---
 
@@ -721,7 +791,7 @@ something went wrong without them.
 ````markdown
 ---
 name: arc-coder
-description: Implements exactly one todo from an arc plan directory. Edits the working copy only and never touches version control. Returns a structured handover for the arc-reviewer. Invoked by /run-arc — not intended for ad-hoc work.
+description: Implements exactly one todo from an arc plan directory. Edits the working copy only and never touches version control. Returns a structured handover for the arc-reviewer. Invoked by /arc's run phase — not intended for ad-hoc work.
 model: sonnet
 effort: high
 maxTurns: 150
@@ -753,7 +823,10 @@ Nothing in the plan directory repeats it.
    You edit the working copy and stop there. The supervisor owns the revision, and it is the only
    way one todo reliably stays one revision.
 2. **Do not edit anything in the plan directory.** The supervisor owns it. If it is wrong, say so in
-   `CONCERNS`.
+   `CONCERNS`. **One exception: your own todo file's `## Progress` section**, at its end — create it
+   if absent, append to it, never edit above it. Note there what is done and what is next as you go,
+   so a spawn cut off before its handover (turn limit, crash, a compaction of the supervisor) leaves
+   a trail the next coder resumes from. It does not replace the handover you return.
 3. **Stay in scope.** Implement this todo and nothing else. When you notice an unrelated bug, a
    tempting cleanup, or a second thing that "should obviously" change too — report it in `CONCERNS`
    and leave it alone. Scope creep is what makes a revision unreviewable.
@@ -872,6 +945,12 @@ tests to run" is a useful, respectable answer; claiming a green run you did not 
 > changed region, which is what the brief already tells it to do. A daemon that answers in seconds
 > is also exactly what rule 7's fast-gate exception lets the coder run as a gate.
 
+> **Why the progress trail lives in the todo file.** A coder that hits its turn ceiling, crashes, or
+> outlives a compaction of the supervisor that spawned it used to leave nothing but a half-edited
+> tree. The originating maintainer allowed the trail in the todo file or in the revision's
+> description; the todo file won, because it is what the next coder is told to read and what a
+> resumed supervisor re-reads, and because rule 1 keeps the coder off version control altogether.
+
 > **Why `maxTurns: 150`.** Observed tool-call p90 across n=183 coder spawns was 100, and the max was
 > 111. At a ceiling of 100, roughly a tenth of spawns hit it and paid for a resumption — a fresh
 > spawn at the ~22.2k-token floor plus re-establishing state — instead of finishing in one. 150 is
@@ -889,7 +968,7 @@ contradicts, sentence for sentence, the brief it is spawned alongside.
 ````markdown
 ---
 name: arc-reviewer
-description: Reviews one arc todo's working-copy diff against its spec, having first run the repo's build and test gate itself, and returns approve/revise/blocked/design-question. Has no write tools — it reports, never fixes. Invoked by /run-arc.
+description: Reviews one arc todo's working-copy diff against its spec, having first run the repo's build and test gate itself, and returns approve/revise/blocked/design-question. Has no write tools — it reports, never fixes. Invoked by /arc's run phase.
 model: sonnet
 effort: high
 maxTurns: 90
@@ -1033,17 +1112,80 @@ NOTES: what blocked you — environment broken, permission denied, missing file,
 
 ## 7. The Core supervisor skill
 
-Write this to `<home>/skills/run-arc/SKILL.md`. It is a compressed version of the full procedure.
-**§10–§13 add the Standard phases to *this same file*, by editing it — never by writing a second
-skill beside it.** The material compressed out is named in §25.
+The supervisor skill is **two files in one skill directory**, per §5: a small **core**,
+`<home>/skills/arc/SKILL.md`, which is what `/arc` invokes, and the **run phase's text**,
+`<home>/skills/arc/RUN.md`, which the core has the session read. The run text is a compressed
+version of the full procedure; the material compressed out is named in §25. **§10–§13 add the
+Standard run rules to *this same `RUN.md`*, by editing it, and §9 and §14 add the other two phases'
+texts beside it — never a second skill.** Write every `<home>` in both files as the absolute path on
+the user's machine: the session runs inside the target repo, where nothing relative resolves.
+
+**Why two files at Core already, when Core has only one phase.** The session carries on through
+compaction (§4), and a compaction can re-attach an invoked body cut short (§5). The run text below is
+already about 14,200 characters on its own — just over the cap — and Standard more than doubles it, so it
+lives in a file that is read, and the invoked core stays a fraction of the cap. The split costs one
+read at the start; growing the core later would cost a restructure, and a run text left in the core
+would be cut without anything saying so.
+
+**The core**, `<home>/skills/arc/SKILL.md`:
 
 ````markdown
 ---
-name: run-arc
-description: Execute an arc plan — get each open todo coded, gated and reviewed and seal exactly one revision per todo. Stops for the human on design questions. Use when the user says "run the arc" or "continue the arc".
-argument-hint: "[plan directory] [--only <todo id>] [--from <todo id>]"
+name: arc
+description: Run an arc — an ordered list of todos, each sealed as exactly one revision: get each open todo coded and reviewed, seal it, and stop for the human on design questions. Reads the plan on disk and carries on in this session. Use when the user says "run the arc" or "continue the arc", or names an arc directory.
+argument-hint: "[arc directory] [--only <todo id>] [--from <todo id>]"
 ---
 
+# `/arc`
+
+`/arc` reads its argument and the plan's state on disk, picks a **phase**, and carries on in this
+session by that phase's text. This file holds the routing and the rules every phase shares; each
+phase's own rules are in its text.
+
+**This file stays at most 14,000 characters (`wc -m`).** A compaction re-attaches an invoked skill
+cut short; phase texts are read, never invoked, so no compaction cuts them. What grows goes into a
+phase text, never here.
+
+## Phases and their texts
+
+- **run:** `<home>/skills/arc/RUN.md`
+
+**A phase's first action is to read its text in full**, by the absolute path above — in
+consecutive chunks to its last line if the read tool refuses one large read, a chunk that errors on
+size retried with half the size, never a stop. Stop and ask only when the file is missing.
+
+## Arguments
+
+`/arc [arc directory] [--only <todo id>] [--from <todo id>]`. With no directory, find the most
+recently modified directory under `<home>/plans/` holding a `README.md` with a `todos/` beside it,
+and confirm it with the user. The flags pass through to the run phase.
+
+**What this session already holds is a routing input**, since disk state cannot tell "this session
+runs this arc" from "nobody does". `/arc <arc directory>` for an arc this session already runs
+continues at its current step, never re-entering the run text's *Before the loop* reconciliation,
+which would reset an `in-progress` todo whose coder is still live and spawn a second.
+
+## Compaction
+
+The session carries on through automatic compaction; one cuts wherever it fires, so the plan
+directory is written current at every decision. **Do not wrap up early, hurry, or skip a step to
+save context.** **After a compaction, re-read this file, the phase text you were following and the
+arc's `README.md` before acting.** A step is taken from the text, never from the summary's
+paraphrase of it.
+
+## What every phase shares
+
+Each is stated in full in `RUN.md`; these are pointers.
+
+- **One todo, one revision**, and **every revision builds before it is sealed**: its
+  `## Standing rules`.
+- **The supervisor writes no code**: the same.
+- **What the software should *mean* is the maintainer's**, asked, never guessed: its step (c).
+````
+
+**The run text**, `<home>/skills/arc/RUN.md` — no frontmatter, since nothing invokes it:
+
+````markdown
 # Running an arc
 
 You are the **supervisor**. You own the plan, the version control, and the decision to interrupt the
@@ -1055,8 +1197,7 @@ full diff, or a file's contents into your context when a subagent has already ju
 
 ## Before the loop
 
-Read the plan directory's `README.md`. If no path was given, look for the most recent directory under
-`<home>/plans/` holding a `README.md` with a **House rules** section, and confirm it with the user.
+Read the plan directory's `README.md` — the one the core resolved and confirmed.
 
 **Check the two gates before anything else.** Read the **Build gate** and **Test gate** lines out of
 House rules. If either is missing, reads `UNSET`, or is still a literal placeholder — `<build gate>`,
@@ -1065,7 +1206,7 @@ command. Run no todo until you have it.** A placeholder reaches the shell as a l
 fails as an unknown command, and every revision sealed after that is sealed on a gate that never ran,
 which is the one guarantee this whole loop exists to make.
 
-**Check that a fresh session — this one — can actually execute the plan it just read.** Skim each
+**Check that a session holding nothing but this directory could execute the plan.** Skim each
 todo file. Stop and tell the user which todo is thin and what is missing if you find: a **Spec** that
 refers to something said in conversation rather than written down; a todo with no "Done when" clause;
 or a missing `decisions.md` on an arc whose todos clearly involved choices while planning.
@@ -1227,8 +1368,9 @@ Rewrite that todo's own file — and nothing else: set its heading to `status: d
 when** checkboxes the reviewer confirmed as met, fill in the **Revision** bullet with the id from the
 seal above, and write a **handover paragraph** — a few sentences the next coder needs to know: what
 now exists, what it is called, anything surprising. This rewrite is the durable state of the run. It
-is what replaces compaction, so do it every time, before starting the next todo. `README.md`'s index
-is a static list of links and titles — leave it alone here, except for the one write below.
+is what a compaction leaves intact, so do it every time, before starting the next todo.
+`README.md`'s index is a static list of links and titles — leave it alone here, except for the one
+write below.
 
 If this todo took more than one review cycle, also note in the handover how many and, briefly, what
 each `revise` found. Skip this for the common case of first-cycle approval.
@@ -1274,15 +1416,22 @@ while each finding is written as a new todo under it, then to `running`, and the
 - **Interrupt rarely, but do interrupt.** Mechanical problems are yours to solve. Questions about
   what the software should *mean* are the maintainer's, and guessing at one costs far more than
   asking.
-- **Assume the run can be cut off at any point.** The reconciliation above and the durable per-todo
-  records are what make an interruption safe to resume from; nothing else does.
+- **Assume the run can be cut off at any point** — a compaction included. The reconciliation above
+  and the durable per-todo records are what make an interruption safe to resume from; nothing else
+  does.
+- **The session carries on through compaction.** Write the plan directory current at every
+  decision, never batched; do not wrap up early to save context; after a compaction, re-read the
+  core, this file and the arc's `README.md` before the next step (the core's *Compaction*).
 ````
 
-**That file is the one `run-arc` skill, now and after any upgrade.** If the user later takes
-Standard, §10–§13 are spliced into the sections of this file they name — step (b) gains a gatekeeper
-spawn, step (c) gains the combination rule, the arc review replaces *After the loop* — and the path
-never changes. **Do not write `run-arc-standard/`, `run-arc-full/`, or a companion skill holding "the
-rest of the loop".** One loop, one file.
+**Those two files are the one `arc` skill, now and after any upgrade.** If the user later takes
+Standard, §10–§13 are spliced into the sections of `RUN.md` they name — step (b) gains a gatekeeper
+spawn, step (c) gains the combination rule, the arc review replaces *After the loop* — §9 and §14
+add `PLAN.md` and `TEST.md` beside it, and the core gains their rows in its routing (§8). The paths
+never change. **Do not write `run-arc/`, `arc-standard/`, a second `RUN.md`, or a separate skill
+holding "the rest of the loop".** One command, one run text. Where an optional layer needs rules
+only some runs use, they go in a further file `RUN.md` reads on a stated trigger (§8, *Grouping*;
+§18), which is a companion of this skill, not a second skill.
 
 ### What Core costs and what it buys
 
@@ -1291,8 +1440,9 @@ extra gate run per todo in the supervisor's confirmation, and the discipline of 
 clauses that are actually testable. Planning a three-todo arc by hand takes ten minutes.
 
 **Buys.** A history where every revision builds and is one idea. An independent check on every piece
-of work before it is sealed. A run that survives its own session dying. A supervisor whose context
-does not grow with the size of the job.
+of work before it is sealed. A run that survives its own session dying, and carries on through
+compaction while the maintainer is away. A supervisor whose context does not grow with the size of
+the job.
 
 ---
 
@@ -1301,213 +1451,204 @@ does not grow with the size of the job.
 *The full three-phase system. This is what most users should end up with.*
 
 > **How to install Part II: merge, never add.** Almost everything from here to §13 is an **edit to
-> the `<home>/skills/run-arc/SKILL.md` you already wrote in §7** — the same file, at the same
-> path, grown in place. The only two sections that produce a *new* skill file are **§9** (`plan-arc`)
-> and **§14** (`test-arc`). The only agent file that gets *replaced* rather than added is
-> `arc-reviewer.md`, in §10.
+> the `<home>/skills/arc/RUN.md` you already wrote in §7** — the same file, at the same path, grown
+> in place. The only two sections that produce a *new* file are **§9** (`PLAN.md`, the planning
+> phase's text) and **§14** (`TEST.md`, the test phase's), both beside `RUN.md` in the same skill
+> directory; §8 grows the core, `SKILL.md`, with the routing that picks between the three. The only
+> agent file that gets *replaced* rather than added is `arc-reviewer.md`, in §10.
 >
-> **There is never a second run-arc skill.** Writing one is the single most likely way to install
-> this wrong, and it fails quietly: the harness loads whichever file matched, the two copies disagree
-> about the gate, the verdicts and the Status vocabulary, and nothing flags the disagreement. Each
-> section below says in its first lines which file it touches and whether it adds, edits or replaces.
-> If a section does not say, it is an edit to `run-arc`.
+> **There is never a second run text, and never a second skill.** Writing one is the single most
+> likely way to install this wrong, and it fails quietly: the harness loads whichever file matched,
+> the two copies disagree about the gate, the verdicts and the Status vocabulary, and nothing flags
+> the disagreement. Each section below says in its first lines which file it touches and whether it
+> adds, edits or replaces. If a section does not say, it is an edit to `RUN.md`.
 
 ---
 
-## 8. The three phases, and why they are separate sessions
+## 8. The three phases, carried by one session
 
 ```
-/plan-arc   →  writes the plan directory, gets it approved     arc: planning → underway
-                                                                PR:  planning → running
-/run-arc    →  runs the per-todo loop, then the agents' read    PR:  running → accept
-                 of the PR, and its fix pass                         (the read happens at accept)
+planning phase  →  writes the plan directory, gets it approved     arc: planning → underway
+  /arc <dir>                                                        PR:  planning → running
+run phase       →  runs the per-todo loop, then the agents' read    PR:  running → accept
+  /arc <dir>         of the PR, and its fix pass                         (the read happens at accept)
 (maintainer tests it, beside the agents or after them)
-/test-arc   →  turns the maintainer's findings into todos       PR:  accept → planning → running
-                 (then /run-arc again)
-(maintainer says it is finished)                                PR:  accept → done; the arc
-                                                                     done with its last PR
+test phase      →  turns the maintainer's findings into todos       PR:  accept → planning → running
+  /arc <dir> <findings>  (then the run phase again)
+(maintainer says it is finished)                                    PR:  accept → done; the arc
+                                                                         done with its last PR
 ```
 
-**One phase, one session.** Planning, running and accepting each run in their own session — not one
-long one compacted between phases. Every phase ends the same way: a context worth nothing to the
-next phase, and a plan directory worth everything. Each phase's last act is to hand the maintainer a
-copy-pasteable line that starts the next one.
+**One command; the phase is read off the disk.** The maintainer types `/arc <directory>`, and the
+core (§7) infers the phase from the arc's state and from what they wrote; the phase word is needed
+only where inference would differ. Each phase is a text the core has the session read — `PLAN.md`,
+`RUN.md`, `TEST.md` — so **this section grows the core** with the routing below, and §9 and §14
+write the other two texts.
 
-**Compaction is a safety net, never a mechanism, and nothing in this design may depend on it.** A
-summary paraphrases precisely the strings the loop needs verbatim — the gates, revision ids, todo
-statuses — while faithfully preserving the conversational texture the loop has no use for. At a
-phase seam, go fresh however empty the context is: the seam is about the context being *worthless to
-the next phase*, not about it being full.
+**One session carries the phases.** A phase ends with its own activity — the plan's approval, a test
+round written, a pull request's read closing — and whatever fires at that moment still fires there:
+the handoff message, and where installed the watch-order check (§21). **It no longer ends the
+session.** Where a phase used to print a line for the maintainer to paste into a fresh session, it
+carries on in this session on their go, and offers the line only for resuming once this session is
+gone. After approval the run follows; the run takes a test round's todos; in a grouped arc the next
+pull request starts as soon as the previous one's read closes (*Grouping*, below). **Only what only
+the maintainer can give waits for them**: their go after approval, a push, a `done`.
 
-> **A compaction nobody asked for is a finding about the session, not an event.** In the run phase it
-> almost always means the supervisor absorbed something that belonged in a subagent — a diff, a build
-> log, an environment repair. Say so in one line and check what the plan directory is now missing.
+The rules that make one long session safe are §4's *Carrying on through compaction*, stated in the
+core. Standard adds one, for planning: **before a plan directory exists, write each of the
+maintainer's rulings and corrections, verbatim, to a scratch file as it is made** — in the session's
+scratchpad, named by the planned arc's slug (`planning-rulings-<slug>.md`) so a post-compaction
+re-read can find it — and §9's step 5 folds it into `decisions.md`. A compaction destroys the one
+thing a planning conversation holds that nothing else does, the maintainer's own words; the scratch
+file is not the durable write the pre-plan step forbids before approval (§9, step 4), since it is
+not the plan directory.
 
-### Session length is a reading, taken before every revision
+> **A reversal, recorded.** An earlier revision of this file held *one phase, one session*: each
+> phase in a session of its own, a copy-pasteable line at each seam, compaction "a safety net, never
+> a mechanism", and a session that read its own context occupancy before every revision and packed
+> up at about half the window. Its reasons were real — a summary paraphrases precisely the strings
+> the loop needs verbatim, and cost is quadratic in session length — and §4's re-read rule answers
+> the first. What changed is the price the maintainer would pay: every seam needed them present to
+> start the next session, so an unattended run stopped wherever a seam fell. The occupancy rule had
+> also never been seen to fire: the first run held to it peaked at 36.5% of a 1M window.
 
-**What this touches:** step (e) of the `run-arc` skill from §7, its Standing rules, the review-fix
-arc's step 3 (§12), the planning checkpoint at the start of `plan-arc`'s step 7 (§9), and one new
-file, the occupancy reader below. Still one run-arc file.
+**What it costs.** Billed input is the sum of context size over every turn (§23), so a long context
+is expensive:
 
-Session length is the largest cost lever in the system, and the one most often missing:
+> **Measured, over one 30-session corpus, before compaction carried sessions:** 61.5% of all
+> cache-read came from turns beyond real turn 75; across ~20 project directories, 78.7%. Capping
+> sessions near 75 turns would have been worth ~29% of total weighted spend.
 
-> **The cost identity.** Billed input for a session is the sum of its context size over every turn —
-> a token that enters context is paid again on every later turn, not once. **So cost is quadratic in
-> session length** and linear in resident instruction text.
+With compaction, what bounds that cost is the **compaction window** — how full the context gets
+before the harness compacts. A smaller window compacts sooner and keeps the context smaller, at the
+price of one more re-read of the core, the phase text and the arc's `README.md` after each
+compaction. That re-read is the floor every compaction pays:
 
-> **Measured, over one 30-session corpus:** 61.5% of all cache-read came from turns beyond real turn
-> 75. Across ~20 project directories the same figure was **78.7%**. Capping sessions near 75 turns is
-> worth **~29% of total weighted spend** (48.7% of cache-read). Capping at 50 buys only 5 points
-> more, because a fresh session re-reads a floor of roughly 70k tokens by its fifth turn. **The knee
-> is at 75 turns.**
+> **Measured, by `wc -w`, in the originating system.** Splitting its one run skill into a core and
+> phase texts with companions cut the words re-read at entry and after every compaction, for an
+> ordinary agent-coded run in a jj repo, from 34,561 to 25,040 (−27.5%; 22,650 mid-loop). A run that
+> also read the human coder's companion re-read 31,567 (−8.7%), and one that read the pull-request
+> companion as well 36,218 (+4.8%). A session holding a run and a planning beside it re-reads both
+> phase texts per compaction — about 94,000 tokens before the two READMEs. That floor is what a small
+> window pays each time it fires.
+>
+> The baseline overstates the saving: it is a full re-read of the old skill, which the originating
+> system had already stopped paying before the split: for some days its hook had re-read only
+> sections. The real saving for agent-coded runs is smaller, and regular arcs roughly return
+> to the earlier cost.
 
-**The rule. Before starting any revision, the supervisor reads its own context occupancy.** Below
-roughly **50%** of the window, it starts the revision. At or past it, it starts **no new revision**
-and hands off. **It packs up — it does not ask:** reaching the threshold *is* the decision, so
-nothing is put to the maintainer. The handoff is one line on where the run stands, the occupancy
-figure it read, confirmation that the plan directory is current, and the copy-pasteable
-`/run-arc <plan directory>` line — nothing more. The next session reconciles from the plan
-directory (§4) and carries on.
+**Which window is best has not been measured.** §25 says so, and what is being done about it.
 
-- **Read before every revision, not only after a seal.** A long stretch that seals nothing — the
-  arc review above all — must not carry a session past the threshold into its next revision unread.
-  So the review-fix arc reads afresh before its first fix todo (§12).
-- **The threshold bars starting a revision, not speaking.** Past it, the supervisor may still put an
-  open question to the maintainer, record findings, do a short piece of research or a pre-plan, and
-  then hand off. None of those is a revision.
-- **Work the maintainer directs mid-session is gated by the same reading.** It starts revisions like
-  any other work. There is no size test for it: estimating a directive's size in advance is exactly
-  the guess the reading replaces.
-- **Report, do not ask, after anything known to be expensive** — a diff pulled into the supervisor's
-  own context, an escalation conversation, an environment repair. One line naming what was absorbed,
-  plus confirmation that the plan directory is current. No question attached: the next reading, not
-  a question, decides whether the session continues.
-- **Planning gets an offer, not a rule.** `plan-arc` has one cheap checkpoint, after the challenge
-  and before approval, where its directory is current by construction (§9, step 7). There it
-  *offers* to pack up, naming the same occupancy figure; the maintainer decides. Planning starts
-  no revision, so no threshold bars anything there.
+**Where the harness offers a hook on compaction, install one that names the re-read.** The core's
+own *Compaction* section says to re-read, but the core is itself a re-attached body — and the first
+dropped where several skills were invoked. A hook that runs right after a compaction and injects one
+instruction removes that dependency. In Claude Code it is a `SessionStart` hook with the matcher
+`compact` in `settings.json`, whose command prints a JSON object carrying the message in
+`hookSpecificOutput.additionalContext`. The message, adapted to the user's paths:
 
-**Why 50%, and what it is not.** The threshold is a **capacity** bound — *a session is the unit one
-supervisor can supervise*, in the originating maintainer's framing, and *"the session is really just
-because of context limitation."* It is **not** the cost-optimal length. On a 200k-token window, 50%
-is about 100k tokens, close to where the knee above already sits. On a 1M window it is about 500k,
-far past the knee, so the largest cost lever above is deliberately left unpulled there. Say that to
-the user rather than letting the two numbers sit side by side unexplained. If they care more about
-spend than about runs that keep going, lower the threshold; the reading works the same at any
-fraction. **What 50% is in turns has not been measured.**
-
-> **Why a reading replaced an estimate.** The rule this one replaced had the supervisor propose, at
-> the start of every session, a grouping of the remaining todos into sessions against a ~54-turn
-> target, sized from signals in the plan directory. It failed twice over. The target was met in no
-> measured session — median 99 real turns, p75 143, p90 194, max 296 — and nothing in the loop
-> noticed. And an estimate made before any todo runs cannot see how the todos will go: a group
-> agreed as "six to eight todos plus the arc review" met todos that took two and three review cycles
-> each. A reading taken before each revision sees that drift at the one moment it can still act on
-> it, and it costs the maintainer no attention, because nothing is asked. **The price, accepted
-> knowingly:** an arc left to run unattended overnight now stops partway, where the old rule's
-> "absent an answer, run to the end" would have finished it.
-
-#### Reading the occupancy
-
-**A rule may not assume a measurement the harness does not offer** — it would look precise while
-quietly never firing. Two numbers look like a gauge and only one is.
-
-- **Not the token counter in the system prompt.** Where a harness exposes one, it is a session
-  *budget*: it starts far above the window size and says nothing about how full the context is.
-- **The transcript is the gauge, where the harness keeps one.** The worked example is Claude
-  Code's, which writes every session to
-  `~/.claude/projects/<encoded working directory>/<session id>.jsonl`, and each assistant turn
-  records its token usage. The newest main-thread turn's `input_tokens + cache_creation_input_tokens
-  + cache_read_input_tokens` is how full the context is now. Exclude output tokens, which the next
-  turn counts as input anyway, and exclude subagent (sidechain) turns, which have windows of their
-  own.
-
-For Claude Code, write this to `~/.claude/scripts/context-usage.py`. For another harness, write the
-same reading over its own transcript format — the rule below needs only the figure:
-
-```python
-#!/usr/bin/env python3
-"""How full is this Claude Code session's context window?  Usage:
-    context-usage.py [--json] <session-id>
-Occupancy = input + cache_creation + cache_read tokens of the newest main-thread
-assistant turn in the session transcript. Output tokens are excluded (the next
-turn counts them as input); subagent (sidechain) turns are skipped (own window)."""
-import json, os, sys
-from pathlib import Path
-
-PROJECTS = Path.home() / ".claude" / "projects"
-
-def tail_lines(path, chunk=262_144):
-    # Transcripts reach hundreds of MB; the turn wanted is always near the end.
-    with path.open("rb") as fh:
-        fh.seek(0, os.SEEK_END)
-        pos, buf = fh.tell(), b""
-        while pos > 0:
-            step = min(chunk, pos); pos -= step; fh.seek(pos)
-            buf = fh.read(step) + buf
-            parts = buf.split(b"\n"); buf = parts.pop(0)
-            yield from (l for l in reversed(parts) if l.strip())
-        if buf.strip():
-            yield buf
-
-# The transcript does not record the window size, so set it to the model's.
-# Too small a value overstates occupancy (an early pack-up); too large a value
-# understates it, and a 50% threshold then never fires. Err small.
-WINDOW = 200_000
-
-def window(used):
-    return 1_000_000 if used > WINDOW else WINDOW  # past it, it was never that window
-
-def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    if not args:
-        sys.exit("pass the session id: a bare run cannot tell this session from a peer's")
-    hits = list(PROJECTS.glob(f"*/{args[0]}.jsonl"))
-    if not hits:
-        sys.exit(f"no transcript for session {args[0]}")
-    for raw in tail_lines(hits[0]):
-        try:
-            rec = json.loads(raw)
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            continue  # a partial line from a transcript still being written
-        usage = (rec.get("message") or {}).get("usage") or {}
-        if rec.get("isSidechain") or rec.get("type") != "assistant" or not usage:
-            continue
-        used = sum(usage.get(k, 0) for k in
-                   ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
-        info = {"used": used, "window": window(used), "percent": round(100 * used / window(used), 1)}
-        print(json.dumps(info) if "--json" in sys.argv else f"{info['percent']}%  {used:,}/{info['window']:,}")
-        return
-    sys.exit("no usage data in transcript")
-
-main()
+```
+Context was just compacted. Re-attached skill bodies may be cut short; what was cut is gone until
+re-read. Before any further action, read in full, in consecutive chunks if one read is refused:
+(1) the /arc core, <home>/skills/arc/SKILL.md; (2) for each arc you were acting on, the text of the
+phase you were acting in, the companions that text's own triggers call for against the arc's
+present state — derived from the text, not from what the summary says was read — and the arc's
+README.md; (3) if you were planning before a plan directory existed, planning-rulings-<slug>.md in
+this session's scratchpad; (4) where §24 Q6's forge read is installed and the arc records a
+pull-request URL, run it before continuing. Name the arc and its phase in your first line. Re-read
+nothing else. Then continue where the summary says you were, taking each step from the text you just read, never
+from the summary's paraphrase.
 ```
 
-and put this among `run-arc`'s Standing rules (Claude Code's spelling of the path and the session
-id variable; substitute the user's harness's):
+> **Why "re-read nothing else".** A full re-read of the originating run skill after a compaction
+> cost about 70,000 tokens. Naming the core, one phase text, the companions it triggers and the
+> README is what the split above made cheap — so no rationale file and no phase the session was not
+> in.
 
-```markdown
-- **A supervisor can read its own context occupancy.** Run
-  `python3 ~/.claude/scripts/context-usage.py --json "$CLAUDE_CODE_SESSION_ID"` from any shell
-  call; `percent` is the reading step (e) acts on. **Always pass your own session id.** The
-  environment variable is the harness's own and resolves from any directory; without an id there
-  is no telling this session's transcript from a peer session's in the same project.
-```
+**Optional: a log of every compaction.** A second hook — `PostCompact` in Claude Code — can append
+one record per compaction: the time, the session, the window in force, the context just before, and
+the summary the harness wrote. It is what lets anyone count the slips that followed a compaction, or
+check what a summary got wrong; nothing in the loop reads it. Offer it to a user who means to tune
+the window.
 
-**Set `WINDOW` to the user's model when you install it, and ask rather than guess.** The
-transcript records the model's id but not its window, so the script cannot tell a 200k session
-from a 1M one below 200k tokens. The default errs toward an early pack-up, which costs one fresh
-session; the opposite error is a threshold that silently never fires. If the user switches models,
-the constant moves with them.
+> **A deferral, tried and dropped.** The originating system shipped a third hook that held an
+> automatic compaction back while a coder was in flight, up to a safety margin, so that no
+> compaction fell mid-todo. It was dropped at the review of the arc that introduced it, in favour of
+> plain automatic compaction and the log above. Slips found right after a compaction that fell
+> mid-todo are the evidence that would argue for bringing it back.
 
-**In a harness that records no per-turn usage, there is no reading, and so no threshold.** Do not
-fall back to an estimated grouping — that is the rule the blockquote above retired. Say plainly
-that sessions then end at phase seams and when the maintainer says so, and that compaction is
-still not a mechanism.
+**Do not write a token formula.** A threshold in tokens per todo reads as precise and is invented. A
+count of things that actually happened is a different kind of number and is fine.
 
-**Do not write a token formula.** A threshold in tokens per todo reads as precise and is invented.
-A count of things that actually happened is a different kind of number and is fine; so is the
-measured occupancy above, which is a reading, not a formula.
+### The routing the core gains
+
+**What this touches:** the core, `SKILL.md`. Its `description` and `argument-hint` name all three
+phases (§5 has the Standard shape), its phase list gains `plan:` `<home>/skills/arc/PLAN.md` and
+`test:` `<home>/skills/arc/TEST.md`, and its *Arguments* is replaced by what follows. Everything here
+is routing: no phase's own rule moves into the core, which is what keeps it under its cap.
+
+`/arc [directory] [plan|run|test] [text] [flags]`:
+
+- **A phase word** straight after the directory decides the phase, but is checked against the arc's
+  state: where it does not fit, the first line names the call that does ("this arc is at `planning`;
+  I assume you meant `/arc <dir> plan`"), or the session asks.
+- **Other text is read for what it is**, after the arc and its state and after any phase word or
+  flag: **findings** on a pull request that can be tested (§14) → the test phase; **an instruction
+  about the arc** (continue, review, open the pull request) → the rows below; **a new arc's subject**
+  → the planning phase; **a question** → answered from the arc's state, changing nothing. Text that
+  fits two readings never starts a plan: ask, naming the candidates, "a new arc" among them. Text
+  that reads as findings with nothing testable: say so, then ask what was meant.
+- **Whenever the arc or the phase is inferred, not told, the first line names the call taken** ("I
+  assume you meant `/arc <dir> run`") before acting, so the maintainer learns the commands.
+- **A bare `/arc` reports and acts on nothing**: for each open arc whose `Repo` bullet names the
+  working directory's repo, its Status and its PRs', the open questions, and the next call. With
+  exactly one such arc, a flag or an instruction matching no arc (`/arc continue`) takes it; with
+  several or none, ask, naming them.
+
+**An arc's rows**, the first that holds, read off its Status, its PR headings (*The Status
+vocabulary*, below) and each PR's last line in `review.md`'s review log (§11):
+
+1. **Findings on a PR that can be tested, or the `test` word** → the test phase. The `test` word
+   with nothing testable is a hard stop: say so and stop.
+2. **Arc `planning`** → the planning phase: a first plan, a large replan, or a stalled challenge.
+   **Arc `done` or `aborted`** → nothing to do; say so.
+3. **A PR `running`, or at `accept` with its read open** — unless the PR being worked (*Grouping*,
+   below) is at `planning`, which is row 4 → the run phase.
+4. **The PR being worked at `planning`, or with none as in 3 any PR at `planning`:** its last log
+   line says who was writing its todos. A fix pass (`triage closed — fix todos: …` or `fix todos:
+   …`) → the run phase, writing any todo it names that is not on disk yet; a cut-off test round
+   (`confirmed`, `triage closed — nothing to fix` or `reopened — test round <N>`) → the test phase,
+   finishing that round; anything else → the planning phase, a replan.
+5. **Every PR `done` or waiting on the maintainer** → the run phase, which hands it over or says the
+   arc is finished.
+
+**Starting a run sets no Status**: approval wrote the arc `underway` and each PR `running`. Where
+journeys are installed, a journey directory first resolves to one arc (*Journeys*, below).
+
+> **Why one command.** The originating system had three — one per phase — and each restated the
+> routing for the cases where the maintainer had typed the wrong one, so the same table lived in
+> three places, in three invoked bodies a compaction could cut. The maintainer had asked for a
+> single command; the phase was already readable off the disk, so the router states the routing
+> once and the three command names became phase names. The old commands were removed, with no
+> aliases.
+
+### Several arcs, one session
+
+One session may hold arcs in different phases: the next arc's planning beside the current arc's run
+(*Journeys*, below), or a test round on an earlier pull request beside a later one's run (*Grouping*,
+below). Three rules, written into the core:
+
+- **Every turn that acts on an arc names, in its first line, the arc and the phase it acts in**, so a
+  compaction's summary can tell whose rules the turn followed.
+- **A phase change reads the new phase's text before acting, and says the previous phase's rules do
+  not apply to the turn.** Planning writes plan files and the test phase round todos; the run phase
+  writes no code, and no todos beyond its own review-fix todos and the loop's index appends.
+- **Planning and a test round interleave only where the run waits on subagents.** The run's seal,
+  gate, review step and next spawn are never delayed for them; a subagent's result is handled first.
+  The run takes a test round's todos at the pull request's next boundary, never mid-todo.
+
+> **The ruling behind it:** *"You should be able to plan the next arc while running the current
+> one."* A run's time goes to its subagents, and while the old rule handed back a line and told the
+> maintainer to wait, their attention to the next arc had nowhere to go.
 
 ### The Status vocabulary
 
@@ -1541,7 +1682,7 @@ code is written, *before* the agents read it (§11), because reading is what `ac
 the agents' share of the reading — the **automatic read** — has closed is read off the PR's last
 line in `review.md`'s **review log** (§11): it is closed only when that line reads `confirmed` or
 `triage closed — nothing to fix`. A PR at `accept` whose read is closed is **waiting on the
-maintainer**; one whose read is still open has work left for a skill. Every site that needs to tell
+maintainer**; one whose read is still open has work left for the agents. Every site that needs to tell
 the two apart — routing, the handoff, the pull-request summary, the parked-watch-order scan and the
 store's close where installed — reads the log this way and never reads bare `accept` as "the agents
 are done".
@@ -1551,8 +1692,8 @@ are done".
 - **`planning` → `underway`**: approval, in the same write that sets its PRs `running`.
 - **`underway` → `planning`, for a large replan** (§9, *Replanning*): whichever phase finds the
   replan large writes its mid-replan note first and moves the arc here; the PR headings keep their
-  values; the arc goes back to `/plan-arc`, whose approval returns it to `underway`. Never beside a
-  live run on another pull request (*Grouping an arc into pull requests*, below).
+  values; the arc goes back to the planning phase, whose approval returns it to `underway`. Never
+  beside a live run on another pull request (*Grouping an arc into pull requests*, below).
 - **`underway` → `done`**: written together with the last PR's `done`, by whoever writes that `done`.
   Where journeys are installed, this write may also ask whether the journey is over (*Journeys*,
   below).
@@ -1583,15 +1724,15 @@ meets one works it out, or asks (§19, *Constant improvement*).
 README.md                   header bullets, the todo index (each entry with its summary
                             bullets), Context, Story, Verification, House rules
 todos/01-<slug>.md          one todo
-todos/fix1-<slug>.md        review-fix todos, written by /run-arc
-todos/test1.1-<slug>.md     test-round todos, written by /test-arc — or by a replan, when a
-                            round is judged large
+todos/fix1-<slug>.md        review-fix todos, written by the run phase
+todos/test1.1-<slug>.md     test-round todos, written by the test phase — or by a replan, when
+                            a round is judged large
 decisions.md                questions asked, alternatives rejected, and replans made, while
                             planning or running
 challenge.md                challenge findings and disposition (Optional layer, §16) — and a
                             small replan's scoped pass, as a `## Round N (replan)`
 review.md                   the review log, then each read's triaged findings, written by
-                            /run-arc (§11, §12)
+                            the run phase (§11, §12)
 research/<name>.md          background too long for a todo: triage reports, prior investigation
 ```
 
@@ -1635,56 +1776,65 @@ them needs. A todo's **Spec** links to it; an agent opens it only if the todo te
 
 ### Journeys: a body of work bigger than one arc
 
-**Optional, though it lives here, because it is a shape of the plan directory.** It edits all three
-skills — `plan-arc`'s step 2 and step 5, the argument handling at the top of `run-arc` and
-`test-arc`, and the lens briefs — and adds no file of its own. Offer it to a user whose work
-regularly outgrows one arc. Everyone else can skip it: a single arc works exactly as §3 describes.
+**Optional, though it lives here, because it is a shape of the plan directory.** It edits `PLAN.md`'s
+step 2 and step 5, the core's routing (a journey directory resolves to one arc first), and the lens
+briefs, and adds no file of its own. Offer it to a user whose work regularly outgrows one arc.
+Everyone else can skip it: a single arc works exactly as §3 describes.
 
-**The problem it solves.** An arc is sized by what one planning session can decompose and research.
-Some work is bigger than that. Without a unit above the arc, it is either crammed into one huge plan
-— the originating system had an 82-todo arc — or scattered across plan directories with nothing
-binding them, so each new arc starts cold and re-asks what an earlier one already settled.
+**The problem it solves.** An arc is sized by what one planning conversation can decompose and
+research. Some work is bigger than that. Without a unit above the arc, it is either crammed into one
+huge plan — the originating system had an 82-todo arc — or scattered across plan directories with
+nothing binding them, so each new arc starts cold and re-asks what an earlier one already settled.
 
 **The units, each bounded by its own property, never by a size.** This is the frame the originating
 maintainer settled on, and the reason no rule here says "an arc is at most N todos":
 
 - a **journey** is *describable* — one initial prompt sets it, at whatever length that takes, and its
   meaning does not change over its course; a day to several weeks;
-- an **arc** is *plannable and researchable* — what `plan-arc` decomposes; discovering substantial
-  new research is the signal that a new arc has begun; roughly a week;
+- an **arc** is *plannable and researchable* — what the planning phase decomposes; discovering
+  substantial new research is the signal that a new arc has begun; roughly a week;
 - a **pull request** is *deliverable and reviewable* — usually one arc is one pull request, and an
   arc may be grouped into several (*Grouping an arc into pull requests*, below; §24 Q6);
-- a **session** is *supervisable* — it ends on the occupancy reading (§8);
 - a **revision** is *sealable, buildable, codeable* — about an hour.
 
-The durations are calibration, not limits.
+The durations are calibration, not limits. **A session is not one of the units.** The originating
+system once counted a fifth, the session — *supervisable*, ended by a reading of its own context —
+and retired it when compaction replaced the session (*One session carries the phases*, above).
 
-**The layout.** Once journeys are installed, step 5 writes every new piece of work to
-`plans/journey-<slug>/`. **A journey of one arc stays flat:** that one directory is the journey and
-the arc at once, laid out exactly as above, with one addition — the journey's **initial prompt,
-verbatim**, in a section of its own in `README.md`. It carries no second Status. So a one-arc journey
-costs nothing over a plain arc directory. Arc directories written before journeys were installed,
-`plans/arc-<slug>/`, are flat one-arc journeys without a prompt: every skill keeps accepting them,
-and nothing migrates them. Pick a slug that neither shape already uses.
-
-Only when a second arc is planned does a journey **grow `arcs/`**:
+**The layout. Once journeys are installed, every new plan is written nested**, a journey that will
+only ever have one arc included:
 
 ```
 journey-<slug>/
-  README.md              the initial prompt, a Status of embarked | over, the ## The arcs list
-  decisions.md           decisions spanning arcs; opens with a pointer into arc 1's own
-  research/<name>.md     background spanning arcs
-  arcs/01-<slug>/        arc 1, moved here whole and unchanged — every relative link still works
-  arcs/02-<slug>/        the new arc, a complete plan directory of its own
+  README.md              the initial prompt verbatim, a Status of embarked | over, ## The arcs
+  arcs/01-<slug>/        arc 1: a complete plan directory, with a `- **Journey:**` bullet linking up
+  arcs/02-<slug>/        a later arc, the same
+  decisions.md           decisions spanning arcs — from arc 2 on, opening with a pointer into arc 1's
+  research/<name>.md     background spanning arcs — likewise from arc 2 on
 ```
 
-Promotion is mechanical. Move the whole of arc 1 down, unchanged, and add one line to its header,
-a `- **Journey:**` bullet linking up. Arc 1 keeps its own copy of the initial prompt, because it was
-written to stand alone. Write the root `README.md` fresh. In `## The arcs`, an entry linking to its
-directory is a **planned** arc, and an entry without a link is **provisional**, a later arc not yet
-planned. The journey's own Status is deliberately light: `embarked`, or `over` once the maintainer
-says it is (*When is a journey over?*, below), with nothing hanging off either. Every arc keeps the
-full vocabulary above.
+A journey of one arc has no journey-level `decisions.md` or `research/`: its decisions go in arc 1's,
+where the planning scratch file folds too (§9). When arc 2 is planned, the journey's own
+`decisions.md` is written, opening with a pointer to arc 1's `decisions.md` and `research/` as the
+record made while arc 1 was the whole journey, and arc 1 is not touched. In `## The arcs`, an entry
+linking to its directory is a **planned** arc, and an entry without a link is **provisional**, a later
+arc not yet planned. The journey's own Status is deliberately light: `embarked`, or `over` once the
+maintainer says it is (*When is a journey over?*, below), with nothing hanging off either. Every arc
+keeps the full vocabulary above. Pick a slug that no existing plan directory already uses.
+
+> **Why nested from the start.** An earlier revision kept a one-arc journey flat — one directory that
+> was journey and arc at once — and *promoted* it when a second arc was planned, moving arc 1 down
+> into `arcs/01-<slug>/`. That move became unsafe the moment the next arc could be planned beside the
+> current arc's run (*Planning beside a run*, below): it would move a running arc's directory and
+> change its arc id while its workspace and observation files are named by it. **An arc's directory
+> and arc id never change after they are written.** The price is one extra `README.md` per one-arc
+> plan, and a longer arc id.
+
+**Older shapes on disk are accepted and never migrated.** A `plans/arc-<slug>/` written before
+journeys were installed is an arc belonging to no journey. A flat journey written under an earlier
+revision — `todos/` beside the journey's own `README.md` — is an arc too, and is **never given a
+second arc by a skill**: before any write for one, name it to the maintainer and ask whether they
+nest it by hand or start the next arc as a new journey. Nothing is moved or renamed on their behalf.
 
 **What makes a directory an arc:** a `README.md` with a `todos/` directory beside it. **Never** the
 presence of a House rules section, because a nested journey's README carries House rules its arcs
@@ -1695,42 +1845,57 @@ has more work to do on it unprompted — when it is `done` or `aborted`, or `und
 `done` or **waiting on the maintainer** (`accept`, its automatic read closed: *The Status
 vocabulary*, above). Everything else is unsettled: an arc at `planning`, and an `underway` arc with
 any PR at `planning`, `running`, or `accept` with its read still open — work left to write, to code,
-or for the agents to read. A flat journey's current arc is itself, unless settled. A nested
-journey's is the first planned entry in `## The arcs` that is not settled. That a PR waiting on the
-maintainer counts as settled is deliberate: an arc waiting on their testing, or parked on a watch
-order (§21), must not block the next arc — and with it, for a watch order, the very later session
-whose handoff would answer it. This is routing only, and moves no status.
+or for the agents to read. A nested journey's current arc is the first planned entry in `## The
+arcs` that is not settled; a flat journey on disk has its one arc, unless settled. That a PR waiting
+on the maintainer counts as settled is deliberate: an arc waiting on their testing, or parked on a
+watch order (§21), must not block the next arc. This is routing only, and moves no status.
 
-**One unsettled state hands back more than one line:** a PR waiting on the maintainer while a
-later PR of the same arc is `running` (where grouping is installed, *Grouping an arc into pull
-requests*, below). The arc still has code to write, so there is no later arc to plan; but whether to
-test the waiting PR or start the open work is the maintainer's choice, so a journey call hands back
-that PR's `/test-arc` line **and** the arc's `/run-arc` line and does neither.
+**A PR waiting on the maintainer beside a later `running` PR of the same arc** (where grouping is
+installed, below) leaves the arc unsettled: it still has code to write, and it is the arc a journey
+call acts on. Nothing waits for the maintainer at a PR boundary but a push and a `done`, so the run
+carries on; the waiting PR is named in passing, with the line their findings for it go to.
 
-**So the maintainer can name a journey instead of an arc:**
+**So the maintainer can name a journey instead of an arc.** `/arc <journey>` resolves to one arc
+before *The routing the core gains*'s rows apply:
 
-- `/plan-arc <journey>` plans the next arc when there is no current one, and resumes the current
-  one if it is still at `planning` — a challenge stall included, since a stall leaves the arc at
-  `planning` (§16). If the current arc is `underway`, it hands back that arc's `/run-arc` line (or
-  the two lines above) and plans nothing; where a *later* listed arc sits at `planning` — a test
-  round reopened an earlier arc's PR while the next was being planned — it names that one too and
-  offers to resume planning it instead. Any other arc's PR waiting on the maintainer is mentioned in
-  passing, with its `/test-arc` line, and never blocks planning.
-- `/run-arc <journey>` runs the current arc if it is `underway`, and names it in its first line. **It
-  never runs an arc still at `planning` because a journey was named** — naming a journey is a vaguer
-  request than naming an arc, and running an unapproved plan on its strength would turn a routing
-  convenience into an approval. It hands back the right lines instead.
-- `/test-arc <journey>` resolves to an arc with a PR that can be tested (§14), never to the current
-  arc. When several are candidates, it lists them and asks.
-- With no argument, `run-arc` and `test-arc` search for arc directories at both depths, by the test
-  above.
+- **No current arc, or the current arc at `planning`** → the planning phase: the next arc, or the one
+  at `planning` resumed — a challenge stall included, since a stall leaves the arc at `planning`
+  (§16).
+- **The current arc `underway`, with no PR at `planning`, and this session already supervising it**
+  → the planning phase for the next arc, beside the run (*Planning beside a run*, below).
+- **The current arc `underway` otherwise** → that arc, by the rows, named in the first line, with an
+  offer to plan the next (none while a PR is at `planning`). **A journey never runs an arc still at
+  `planning`** — naming a journey is a vaguer request than naming an arc, and running an unapproved
+  plan on its strength would turn a routing convenience into an approval. A later arc at `planning`
+  is named, never offered to run.
+- **Findings with a journey** resolve to an arc with a PR that can be tested (§14), never to the
+  current arc, which is usually a later one with nothing to test yet: list the candidates, newest
+  first, and confirm — never pick one.
+- Any other arc's PR waiting on the maintainer is named in passing, with the line their findings go
+  to, and never blocks.
+- With no directory at all, open arcs are found at both depths, by the test above.
+
+**Planning beside a run.** The run is not stopped to plan — the originating maintainer: *"You should
+be able to plan the next arc while running the current one."* Name the current arc's state in one
+line, each PR and its value, then plan the **next** arc in this session (*Several arcs, one session*,
+above). The next arc is a later arc already at `planning`, resumed rather than skipped; otherwise
+the **first provisional entry of `## The arcs`, in list order** — its position in the list, never its
+position relative to the current arc; with none, a new arc appended. Where several entries are
+provisional, propose the first and ask. The next arc is planned on a tree the run is still changing,
+which the challenge phase's fresh read of the base revision every round already covers (§16). The
+one case that hands back instead: a PR of the current arc at `planning`, whose plan is not all
+written yet.
+
+> **Why list position, not "the one after the current arc".** In the originating journey a
+> provisional arc sat above a later-numbered arc that ran first; "the entry after the current arc"
+> would have skipped it. List order is the maintainer's order of intent.
 
 **Later arcs do not start cold.** Before the pre-plan for arc N ≥ 2, the planner reads three things:
 the journey `README.md`, the journey `decisions.md`, and the file listing of the journey's
-`research/`. It opens a finished arc's own directory only where one of those points into it.
-Anything the journey's `decisions.md` already settles is not re-asked when the story is settled. A
-decision about one arc's decomposition goes in that arc's `decisions.md`; one that spans arcs goes
-in the journey's.
+`research/` — for arc 2, arc 1's own `decisions.md` and `research/`, since the journey has none yet.
+It opens a finished arc's own directory only where one of those points into it. Anything the
+journey's `decisions.md` already settles is not re-asked when the story is settled. A decision about
+one arc's decomposition goes in that arc's `decisions.md`; one that spans arcs goes in the journey's.
 
 **The journey README is the file read most, so it stays short.** Each time a next arc is planned,
 every settled arc's entry in `## The arcs` shrinks to one line and its link. The arc's own directory
@@ -1739,9 +1904,10 @@ already holds the detail, so nothing is lost. Anything a later arc still needs m
 *"compression and continuity are the same requirement here."*
 
 **Wherever an arc's name becomes a file or workspace name, use its arc id.** Every journey has an
-arc `01-…`, so a bare directory name would collide across journeys. The arc id is `<slug>` for a
-flat directory and `<journey slug>-<N>-<slug>` for a nested arc. Watch-order observation files
-(§21) and concurrency workspaces (§18) are the two places this bites.
+arc `01-…`, so a bare directory name would collide across journeys. The arc id is
+`<journey slug>-<N>-<slug>` for a nested arc — the only form written now — and `<slug>` for an older
+`plans/arc-<slug>/` or flat journey on disk, which the slug check above keeps from colliding.
+Watch-order observation files (§21) and concurrency workspaces (§18) are the two places this bites.
 
 **Lenses judging a nested arc are given the journey README's path as well** (§11, §16), since a lens
 handed only the arc directory cannot know it exists. **One lens invocation covers one arc
@@ -1755,27 +1921,26 @@ is asked by whoever writes an arc's `done`, and only when that arc is **the last
 not the last-listed one**: arcs close out of order, because a meta-arc can wait on its watch order,
 its PRs waiting on the maintainer, while a later one closes first. So the writer checks every other
 entry at that moment, and asks only when every other entry is already `done` or `aborted` and none
-is still provisional. It
-asks in the same reply as the `done` write — never deferred to a later session, and never decided
-alone, by the store's role (§21) included. A yes writes the journey README's `over`; a no leaves it
-`embarked`, and the next step is `/plan-arc <journey>`. A **flat** journey is asked the same
-question when its arc reaches `done`: a yes writes nothing, since it has no second Status, and a no
-means a next arc is planned, which promotes it.
+is still provisional. It asks in the same reply as the `done` write — never deferred, and never
+decided alone, by the store's role (§21) included. A yes writes the journey README's `over`; a no
+leaves it `embarked`, and `/arc <journey>` plans the next arc. A flat journey on disk is asked the
+same question when its arc reaches `done`: a yes writes nothing, since it has no second Status, and
+a no is the case above — ask how its next arc is to be laid out.
 
-> **What it costs.** In the originating system this grew `plan-arc` by about 13% and `run-arc` by
-> about 6%, for an event — a second arc, a promotion, an `over` — that is rare next to an ordinary
-> run, and every skill reads the routing rules on every invocation. That is the honest case for
-> leaving it out until the user has work that needs it.
+> **What it costs.** In the originating system this grew the planning text by about 13% and the run
+> text by about 6%, for an event — a second arc, an `over` — that is rare next to an ordinary run,
+> and the routing is read on every invocation. That is the honest case for leaving it out until the
+> user has work that needs it.
 
 ### Grouping an arc into pull requests
 
 **Optional, and only for a user whose arcs reach review as pull requests (§24 Q6).** It lives here
 because it is a shape of the index. Every arc already has a `### PR 1` heading (§3); an arc is
-**grouped** when it has **more than one**. Grouping edits `plan-arc`'s sizing step and index
-template, `test-arc`'s entry, the three arc-review lens briefs, `arc-triage`'s brief and two
-challenge lenses, and it adds to `run-arc` a **companion file** — `GROUPED.md` beside its `SKILL.md`
-— that the supervisor reads only for a grouped arc (*What it costs*, below). Everyone else skips it:
-an arc of one PR runs exactly as written above.
+**grouped** when it has **more than one**. Grouping edits `PLAN.md`'s sizing step and index
+template, `TEST.md`'s entry, the three arc-review lens briefs, `arc-triage`'s brief and two
+challenge lenses, and it adds a **companion file** — `GROUPED.md` beside `RUN.md` — that the run
+phase reads only for a grouped arc (*What it costs*, below). Everyone else skips it: an arc of one
+PR runs exactly as written above.
 
 **The problem it solves.** "One arc is one pull request" used to be absolute here. The originating
 maintainer, when it was put to them: *"Usually, but often enough not, and we don't want to have a
@@ -1822,16 +1987,19 @@ PR in front of them, not the arc.
 > feared is avoided by giving the two levels different questions: a PR heading says what is being
 > done to that PR's code, and the arc's bullet says only whether the plan is approved.
 
-**Which PR a session works is stored, not derived**, in a `- **PR:** <k>` header bullet that
-`run-arc` writes — **only in a grouped arc**; an arc of one PR has none and works PR 1. Approval
+**Which PR a session works is stored, not derived**, in a `- **PR:** <k>` header bullet that the
+run phase writes — **only in a grouped arc**; an arc of one PR has none and works PR 1. Approval
 writes `running` on every PR at once, so with several PRs at `running` the headings cannot say which
-one a session is coding, and every PR starts in a fresh session that cannot remember a pick. The
-maintainer: *"Store it and additionally compare to github/forge status"* — the comparison is §24
-Q6's forge read. The bullet is **written once per PR boundary, at a session's start, and at no other
-moment** — a boundary being a session that finds the bullet absent, or the PR it names `done` or
-**waiting on the maintainer** (*The Status vocabulary*, above). Bare `accept` is not a boundary: the
-loop writes it before the agents read, so a session resumed between a PR's last seal and its review
-would otherwise move on and never review that PR. The value written is the first of: **the earliest
+one a session is coding, and a session resumed after a cut-off — or carrying on after a compaction,
+whose summary is no record — cannot trust a pick it remembers. The maintainer: *"Store it and
+additionally compare to github/forge status"* — the comparison is §24 Q6's forge read. The bullet is
+**written once per PR boundary and at no other moment.** A boundary is a moment — a session's start,
+or, inside a running session, the close of a PR's automatic read — at which the bullet is absent, or
+the PR it names is `done` or **waiting on the maintainer** (*The Status vocabulary*, above).
+Everything a session's start does at a boundary, the in-session boundary does too: the forge read,
+this write, and recognising a test round, in that order. Bare `accept` is not a boundary: the loop
+writes it before the agents read, so a session resumed between a PR's last seal and its review would
+otherwise move on and never review that PR. The value written is the first of: **the earliest
 earlier PR at `running` with an open test round**, so an externally reviewed PR is repaired before
 more is stacked on it; then **the first PR at `running` that holds an open todo**. Each skips a PR the
 forge read found merged or closed; an open round on such a PR is put to the maintainer instead. The
@@ -1842,10 +2010,14 @@ What the bullet scopes:
 
 - **The loop works one PR**, picking only from its group, its review-fix todos and its open round,
   and exits when that PR holds no open todo, writing its heading `accept` (§4).
-- **Where the human coding seat is installed (§18), who codes is asked again at each PR's start**,
-  over that PR's todos only.
-- **A PR's end ends the session, whatever the occupancy reading** (§8): the session runs that PR's
-  read, hands it over once the read is closed, and the next PR starts fresh.
+- **Where the human coding seat is installed (§18), a new PR states who codes it, and asks
+  nothing**: the per-todo default is written over that PR's todos only, keyed on the arc's existing
+  human-coder bullet, and said in one line. A later PR's todos get their default at its own start.
+- **A PR's end does not stop the run.** The session runs that PR's read, hands it over once the
+  read is closed — the PR now waits on the maintainer — and, where a later PR is planned, starts
+  that PR's todos straight away: the read's close is a boundary, above. What still waits for the
+  maintainer's word is what only they can give, a push of the earlier PR and its `done`. The
+  originating maintainer, replacing a rule that ended the session here: *"Carry straight on."*
 - **The review reads that PR's diff, not the arc's.** *PR k's tip* is the head of the revisions its
   own todos' **Revision** bullets name — `heads(<rev1>|<rev2>|…)` in jj,
   `git rev-list --topo-order -n1 <rev1> <rev2> …` in git — derived whenever read, never stored. The
@@ -1854,7 +2026,7 @@ What the bullet scopes:
   names a lower revision and is left out. The *PR base* is the arc's base for PR 1 and PR k−1's tip
   after that, and the diff is `jj diff --from <PR base> --to <PR k's tip>` (git:
   `git diff <PR base>..<PR k's tip>`) — never `--to @-`, which stops being PR k's tip once a later
-  PR sits above it. A test round of PR k reads from **its own Round base**, which `/test-arc`
+  PR sits above it. A test round of PR k reads from **its own Round base**, which the test phase
   records under the round's own heading (§14), so two rounds open on different PRs never overwrite
   one value; which round a read is of is named by the `reopened — test round <N>` line that opened
   it (§11).
@@ -1862,19 +2034,27 @@ What the bullet scopes:
   the diff to that PR's own todos — a later PR's todos still being open is the plan's order, not a
   finding — and the *why* lens judges what *this* diff contributes to the **Value** bullet, not what
   the other pull requests still owe.
-- **The handoff opens "PR k of n landed"**, and while any PR holds an open todo it offers the
-  `/run-arc` line that starts that work beside the `/test-arc` line, saying that starting the next
-  PR does not wait on PR k's external review.
+- **The handoff opens "PR k of n landed"**, gives the line the maintainer's findings on PR k go to
+  (`/arc <dir> <findings>`), and, while a later PR holds an open todo, says it starts now in this
+  session — starting it does not wait on PR k's external review. A line to start the run is given
+  only for resuming it in a session of its own.
 
 **A round on an earlier PR.** A colleague's review of PR 1 can arrive while PR 2 is being built.
-PR 1's heading reads `accept` — it was handed off, since `run-arc` moves the bullet off a PR only at
-a boundary — so `/test-arc` takes it by the ordinary rule (§14), deciding which PR from a URL or
-number in the findings matched against the recorded pull requests, and asking once where nothing
-matches; the triage briefs get that PR's diff. **It moves only that PR's heading** — `planning`,
-then `running` — and never the live PR's, and it says the round is taken at the next PR boundary,
-never by the run that is live now. That boundary's session then codes the round **inside PR 1**,
-below PR 2, where the reviewer will see it:
+PR 1's heading reads `accept` — it was handed off, since the run phase moves the bullet off a PR
+only at a boundary — so the test phase takes it by the ordinary rule (§14), deciding which PR from a
+URL or number in the findings matched against the recorded pull requests, and asking once where
+nothing matches; the triage briefs get that PR's diff. **It moves only that PR's heading** —
+`planning`, then `running` — and never the live PR's, and it says the round is taken at the next PR
+boundary, never mid-todo — by this session where it is the one running the arc (*Several arcs, one
+session*, above). That boundary then codes the round **inside PR 1**, below PR 2, where the reviewer
+will see it:
 
+- **Where the maintainer's own working tree is live** — a second workspace of theirs, or an
+  un-drained spike (§18) — placing the fix would rebase it, so **the round defaults to deferred**
+  and nothing waits for an answer: the boundary's report line says the round was put off and why,
+  names how their tree recovers (`jj workspace update-stale` in jj), and that their `hands up:`
+  takes it at the next boundary. Put off is not the todo status `deferred`: the round's todos stay
+  open, and the next boundary finds them again.
 - **jj: place the working revision directly above PR k's tip before the coder starts** —
   `jj new -A <PR k's tip>` — so the coder edits and the gate builds the tree the fix will live in,
   and jj rebases the later PRs' revisions above it. **Place once per todo**, on its first entry to
@@ -1914,7 +2094,7 @@ below PR 2, where the reviewer will see it:
   squash-merge leaves the old commits under the upper stack, to be rebased onto the new trunk and
   the leftovers abandoned. That sequence is reasoning from the forge's documentation, untried.
 
-**What it costs.** In the originating system the arc that introduced grouping grew the run skill by
+**What it costs.** In the originating system the arc that introduced grouping grew the run text by
 about 40,000 characters, roughly 80% of it conditional on the arc having more than one PR, threaded
 through paragraphs a one-PR run applies — so every ordinary run carried text it had to recognise as
 inapplicable. **That is why it lives in an on-demand companion file**, read right after `README.md`
@@ -1931,19 +2111,13 @@ PR's todos as one list, reviews the cumulative diff and hands off as one pull re
 
 ---
 
-## 9. The planning phase: `/plan-arc`
+## 9. The planning phase: `PLAN.md`
 
-**This section adds a new file.** Write it to `<home>/skills/plan-arc/SKILL.md` — a second skill
-alongside `run-arc`, not an edit to it. (§10–§13 are the opposite case: edits to `run-arc` itself.)
-What follows is the procedure; write it in this shape, with the frontmatter from §5.
-
-```yaml
----
-name: plan-arc
-description: Author an arc plan — an ordered list of todos where each becomes exactly one revision, with testable "Done when" clauses and the repo's build/test gates. Use when the user wants to plan a multi-step piece of work to be executed by /run-arc, or says "plan an arc".
-argument-hint: "[what the arc should cover, or an issue number]"
----
-```
+**This section adds a new file.** Write it to `<home>/skills/arc/PLAN.md`, beside `RUN.md` — a phase
+text of the one `arc` skill, not a second skill, so it has no frontmatter: the core's phase list
+names it (§8, *The routing the core gains*) and the session reads it when routing lands on the
+planning phase. (§10–§13 are the opposite case: edits to `RUN.md` itself.) What follows is the
+procedure; write it in this shape, opening with §5's convention line.
 
 ### Step 1 — Detect the repo contract
 
@@ -2022,10 +2196,17 @@ permits exactly one file, the pre-plan is what that file holds — and leaving p
 approval gesture and the only way out of the restriction. Outside plan mode, say the pre-plan in one
 message and wait for a nod.
 
+**What the maintainer rules or corrects before the directory exists is still written down as it is
+made**: verbatim, to the planning scratch file §8 names (*One session carries the phases*), outside
+the plan directory. Step 5 folds it into `decisions.md`.
+
 ### Step 5 — Write the plan directory
 
 With the pre-plan approved and its research run, **settle the story first**, then write the directory
-in the layout of §8.
+in the layout of §8, in this same session — pre-planning, writing and challenging are one phase.
+**Fold the planning scratch file into `decisions.md` as part of that write**, each ruling and
+correction verbatim as a question-and-answer line (§3); a ruling that decided nothing leaves no line,
+and the scratch file has then done its work.
 
 #### Settle the story before writing todos
 
@@ -2092,7 +2273,7 @@ to be an abort point, and an abort point that proceeds on silence has stopped be
 until one of three answers comes back, each with its own consequence:
 
 - **abort.** The arc stops before the challenge phase spends a single fan-out. Set **Status** to
-  `aborted` (§8) and end the session. **Keep the plan directory — never delete it.** An abort here
+  `aborted` (§8). **Keep the plan directory — never delete it.** An abort here
   is this gate's strongest success case; deleting the directory would leave nothing anywhere
   recording that a decomposition was proposed and rejected, or what it said.
 - **redirect.** Rewrite the decomposition — the same kind of edit step 6's rework makes, directly in
@@ -2120,13 +2301,6 @@ land.
 
 ### Step 7 — Get the finished plan approved
 
-**First, the planning checkpoint.** The plan directory is current by construction here, and the
-challenge (§16), where installed, is what makes a planning session long. If the session has run
-long, offer to pack up before the approval: one line on where the plan stands, the session's
-measured occupancy (§8), confirmation that the directory is current, and the copy-pasteable
-`/plan-arc <plan directory>` line. It **offers; the maintainer decides** — ending a planning
-session is never the planner's own call.
-
 Show the **same index summary the pre-challenge gate already showed** — the same artefact, not a
 second list — along with the gates, and get agreement **before any code runs**. This is the one
 review point in the whole design where the human sees everything at once, and it is cheap here and
@@ -2145,12 +2319,12 @@ If the arc changes what a user sees or does, mention that the review phase will 
 already running, and let the user start it now. **In a project where a cold start syncs a database
 for a quarter of an hour, being told at review time is being told too late.**
 
-When approved, set the statuses and **end the session here**. Approval writes the arc `underway`
-and, in the same write, `running` on every PR heading still at `planning` (§8, *The Status
-vocabulary*). For an arc this session **re-entered** (*When `/plan-arc` re-enters an arc that holds
-work*, below), the PR headings already hold their own values, so approval writes `running` on every
-heading still at `planning` — an arc stopped at a challenge stall has no other — and also on each PR
-the replan gave new todos; every other PR keeps the value it held, since writing `running` over a
+When approved, set the statuses. Approval writes the arc `underway` and, in the same write,
+`running` on every PR heading still at `planning` (§8, *The Status vocabulary*). For an arc this
+session **re-entered** (*When the planning phase re-enters an arc that holds work*, below), the PR
+headings already hold their own values, so approval writes `running` on every heading still at
+`planning` — an arc stopped at a challenge stall has no other — and also on each PR the replan gave
+new todos; every other PR keeps the value it held, since writing `running` over a
 PR that is `done`, waiting on the maintainer, or untouched would reopen finished reading or restart
 a PR that is not.
 
@@ -2161,19 +2335,21 @@ none: a PR with no log line, which has no read begun; and a PR whose last line i
 `reopened` line — a test round's redesign logs its own (§14), and a second line would widen the next
 read from the round's diff to the whole PR.
 
-Then remove the mid-replan note, which is spent, and hand over a copy-pasteable line:
+Then remove the mid-replan note, which is spent, and **offer to carry on into the run phase in this
+session**. On the maintainer's go, the core's routing sends the approved arc to the run phase, whose
+text the session reads afresh before acting (§8, *Several arcs, one session*). Give the line below
+only for resuming once this session is gone:
 
 ```
-/run-arc <absolute plan directory path>
+/arc <absolute plan directory path>
 ```
 
-Say in one sentence why it should be a new session: the planning conversation is spent, and
-everything that matters is now in the directory.
+Approval is the one seam that waits: it is the maintainer's go, and nothing else can give it.
 
 ### Replanning
 
-**What this touches:** `plan-arc/SKILL.md` gains this subsection, and every other site that replans
-cites it instead of restating it — `run-arc`'s `needs-replan` and `design-question` branches (§4,
+**What this touches:** `PLAN.md` gains this subsection, and every other site that replans
+cites it instead of restating it — `RUN.md`'s `needs-replan` and `design-question` branches (§4,
 §7), its review-fix arc (§12), every test round (§14), and the human coder's *this todo is wrong*
 (§18, where installed). At Core, §4's `needs-replan` carries the trace alone; this adds the sizing
 and the checks.
@@ -2219,17 +2395,18 @@ pick the adequate herd of lenses, researchers … to do this, according to the s
   first writes a **mid-replan note**: what the maintainer agreed, what the replan must still do,
   which PRs it touches and the status each holds, the working copy's state (kept or discarded — a
   kept one the resumed run will ask about), and the findings and `research/` reports it must answer,
-  by path; plus a question-and-answer line in `decisions.md`, since the session that agreed it is
-  about to end. The note is an **indented sub-bullet beneath the Status bullet — never on the
-  `- **Status:**` line itself, and never in a PR heading**: anything that reads a status by matching
-  those lines — a status-line script, a grep for `running` — would read free text there as a live
-  value. Then the arc's Status goes to `planning` — its PR headings keep their values — and the arc
-  returns to `/plan-arc` (*When `/plan-arc` re-enters an arc that holds work*, below), which reworks
-  the unsealed todos and runs its whole challenge phase over them, progress judgement included. A
-  `run-arc` session that agreed a large replan ends by handing back `/plan-arc <absolute plan
-  directory path>` — a phase seam (§8). **A large replan never starts beside a live run on another
-  pull request of a grouped arc** (§8): a live run is not rewound, and planning under it would touch
-  that pull request's todos and tree, so it waits for that pull request's handoff.
+  by path; plus a question-and-answer line in `decisions.md`, since what agreed it was a
+  conversation, and a compaction keeps only a summary of it. The note is an **indented sub-bullet
+  beneath the Status bullet — never on the `- **Status:**` line itself, and never in a PR heading**:
+  anything that reads a status by matching those lines — a status-line script, a grep for `running`
+  — would read free text there as a live value. Then the arc's Status goes to `planning` — its PR
+  headings keep their values — and the arc returns to the planning phase (*When the planning phase
+  re-enters an arc that holds work*, below), which reworks the unsealed todos and runs its whole
+  challenge phase over them, progress judgement included. A session in the run phase that agreed a
+  large replan carries on into the planning phase itself, on the maintainer's go, reading `PLAN.md`
+  before it acts — no new session, no line to paste. **A large replan never starts beside a live run
+  on another pull request of a grouped arc** (§8): a live run is not rewound, and planning under it
+  would touch that pull request's todos and tree, so it waits for that pull request's handoff.
 
 > **Why the small end is one fan-out with no re-check.** Every review-fix arc and every test round
 > is a small replan, and holding each to the challenge phase's progress judgement would run the
@@ -2265,15 +2442,15 @@ pick the adequate herd of lenses, researchers … to do this, according to the s
 > — none blocking; they were corrected without a re-check, and the corrected todos then passed their
 > per-todo reviews. No later arc has yet run under them.
 
-### When `/plan-arc` re-enters an arc that holds work
+### When the planning phase re-enters an arc that holds work
 
 An arc **holds work** when its directory already has a `challenge.md` with a `## Round N`, or a
 filled **Base revision** bullet — read off the disk, never from a stored flag. A large replan comes
-back to `/plan-arc` this way, whether the maintainer names the arc directory or, where journeys are
-installed, routing reaches it (§8). Without this path the procedure above reads end to end as
-*author a new arc*: in the originating system, a session handed such an arc had no rule for whether
-a recorded note was work to finish or to re-derive, nor for what number its next challenge round
-took.
+back to the planning phase this way, whether the maintainer names the arc directory or, where
+journeys are installed, routing reaches it (§8). Without this path the procedure above reads end to
+end as *author a new arc*: in the originating system, a session handed such an arc had no rule for
+whether a recorded note was work to finish or to re-derive, nor for what number its next challenge
+round took.
 
 **Read in this order, and stop where the pointers stop** — such a directory runs large; one measured
 about 300 KB, two-thirds of it `challenge.md`:
@@ -2307,11 +2484,11 @@ about 300 KB, two-thirds of it `challenge.md`:
   spawned (§3, *a House rule stating a fact read off a moving base*), never `## Round 1` again.
 - **A PR sent back from `accept`** came one of two ways, told apart by whether a `## Test round N
   (PR <k>)` section exists on disk for the replan. **With one**, a test round judged large wrote it
-  (§14): the replan's new todos are that round's `test<N>.<k>` todos under it, written as `/test-arc`
-  writes them — each **Spec** cites the triage report(s) it answers, and each of the section's
+  (§14): the replan's new todos are that round's `test<N>.<k>` todos under it, written as the test
+  phase writes them — each **Spec** cites the triage report(s) it answers, and each of the section's
   per-finding lines gains the id(s) of the todo(s) answering it, so the round still records, finding
-  by finding, what answered what. **Without one**, the replan came from the agents' read — a `fix`
-  bucket over four that the maintainer answered "replan" (§12) — and what it leaves is the triaged
+  by finding, what answered what. **Without one**, the replan came from the agents' read — an `ask`
+  whose answer widened the arc (§12) — and what it leaves is the triaged
   list in `review.md`, the mid-replan note and its `decisions.md` line; the todos are plain-numbered,
   written from the findings the note names.
 - **A re-split grouped arc clears its `**PR:**` bullet** before approval (§8): the bullet names a
@@ -2322,7 +2499,7 @@ Which statuses approval writes is step 7's, above.
 
 ### Scope note
 
-**This skill only plans.** Do not implement anything, do not create revisions, do not modify the repo
+**This phase only plans.** Do not implement anything, do not create revisions, do not modify the repo
 at all. If the user wants one quick thing done instead, just do it directly.
 
 ---
@@ -2330,8 +2507,8 @@ at all. If the user wants one quick thing done instead, just do it directly.
 ## 10. The gate as a separate agent: `arc-gatekeeper`
 
 **What this section touches:** it **adds** `arc-gatekeeper.md`, **replaces** `arc-reviewer.md` with
-the variant at the end of this section, and **edits** steps (b) and (c) of the `run-arc` skill from
-§7 in place. It does not create a second run-arc skill.
+the variant at the end of this section, and **edits** steps (b) and (c) of `RUN.md` from §7 in
+place. It does not create a second run text.
 
 At Core, the reviewer runs the gate. At Standard, a third agent does, and the two are **spawned in
 one message** so their verdicts arrive together. Adopting this section therefore means replacing
@@ -2408,7 +2585,7 @@ that never reached a coder.
 ````markdown
 ---
 name: arc-gatekeeper
-description: Runs one arc todo's gate — a command build/test pair, or a reading-based substitute over the coder's edited files where the repo has neither — and returns pass, gate-failed, or gate-unfinished. No diff, no editing, no version control beyond a filename-only listing. Invoked by /run-arc alongside arc-reviewer.
+description: Runs one arc todo's gate — a command build/test pair, or a reading-based substitute over the coder's edited files where the repo has neither — and returns pass, gate-failed, or gate-unfinished. No diff, no editing, no version control beyond a filename-only listing. Invoked by /arc's run phase alongside arc-reviewer.
 model: haiku
 effort: medium
 maxTurns: 40
@@ -2537,7 +2714,7 @@ its Core caveat: this variant is the one the measurement was taken on).
 ````markdown
 ---
 name: arc-reviewer
-description: Reviews one arc todo's working-copy diff against its spec and returns approve/revise/blocked/design-question. Runs no gate itself — arc-gatekeeper does that, spawned alongside it. Has no write tools — it reports, never fixes. Invoked by /run-arc.
+description: Reviews one arc todo's working-copy diff against its spec and returns approve/revise/blocked/design-question. Runs no gate itself — arc-gatekeeper does that, spawned alongside it. Has no write tools — it reports, never fixes. Invoked by /arc's run phase.
 model: sonnet
 effort: high
 maxTurns: 90
@@ -2653,12 +2830,14 @@ NOTES: what blocked you — environment broken, permission denied, missing file
 ```
 ````
 
+To add the optional instruction-prose check to this brief, see §21 (*Optional beside it*).
+
 ---
 
 ## 11. After the loop: the arc review
 
 **What this section touches:** it **adds** three agent briefs and replaces §7's *After the loop* in
-the `run-arc` skill with this phase. Still one run-arc file.
+`RUN.md` with this phase. Still one run text.
 
 Every todo has now been reviewed in isolation and every revision builds. **That is exactly the
 guarantee the per-todo loop gives you, and it is not the same as the arc being any good.** The arc
@@ -2673,7 +2852,7 @@ maintainer's testing may read beside them (§14), and a colleague's review comes
 by whoever takes the step, **before** acting on it. The lines:
 
 - `read started — <scope>`: the lenses fan out; the scope is the whole PR, or a test round's diff
-  (`test round <N>`). A section of `review.md` that `/test-arc` already opened for this read —
+  (`test round <N>`). A section of `review.md` that the test phase already opened for this read —
   findings the maintainer reported before it began — is adopted as one of its sources; open none
   beside it.
 - `triage closed — fix todos: fix<n>, …` or `triage closed — nothing to fix`: logged by §12's triage,
@@ -2695,7 +2874,8 @@ line and goes to the step it names:
 - No line yet, or `reopened` with its todos done: a read, over the scope the `reopened` line names.
 - `read started`: the read or its triage was cut off. If `review.md` already holds this read's
   triaged list, resume the triage — open asks first (§13) — spawning no lens. If it does not, the
-  lenses' findings died with that session, so fan out again; nothing recorded is lost by doing so.
+  lenses' findings died with that session, or were compacted into a summary that cannot be trusted
+  with them, so fan out again; nothing recorded is lost by doing so.
 - `triage closed — fix todos: …`, or `fix todos: …`: the todos it names — write any not on disk yet
   — and once they are all done, the final review. No lens fans out for it.
 - `confirmed` or `triage closed — nothing to fix`: the read is closed; the PR waits on the
@@ -2705,16 +2885,15 @@ Where the log and the files disagree — a line naming a todo that does not exis
 not fit the line — say so and work out the right step, or ask, rather than following the line
 mechanically. (§8's *The Status vocabulary* says why this is a log read as guidance, not a status.)
 
-**This changes §7's *Before the loop*.** Its bullet for a PR at `accept` becomes: resume from the
-review log, as above — reconcile nothing, and fan out no lens before the log says to. And a PR found
-at `planning` in an approved arc is one whose todos were being written when a session ended: a fix
-pass cut off mid-write is told by the log, whose `fix todos` line names the todos — write any not on
-disk yet and continue at §12's review-fix arc; a test round's or a replan's todos are handed back to
-the skill that writes them, with its `/test-arc` or `/plan-arc` line, and nothing is run. Its open
-questions also include every `ask` in `review.md` with no `answered` line (§13). Its bullet for an
-arc still at `planning` changes too: with `plan-arc` installed, approval is that skill's (§9), and
-such an arc may hold a challenge stall or a large replan, so hand back its `/plan-arc` line and run
-nothing rather than asking for an approval here.
+**This is what the core's rows read** (§8, *The routing the core gains*), and it changes §7's
+*Before the loop*. A PR at `accept` resumes from the review log, as above — reconcile nothing, and
+fan out no lens before the log says to. A PR found at `planning` in an approved arc is one whose
+todos were being written when a session was cut off, and row 4 tells by the log who was writing
+them: a fix pass, whose `fix todos` line names its todos — the run phase writes any not on disk yet
+and continues at §12's review-fix arc; a test round's — the test phase finishes the round; anything
+else — the planning phase, as a replan. The run phase's open questions also include every `ask` in
+`review.md` with no `answered` line (§13). An arc still at `planning` is the planning phase's (row
+2), since it may hold a challenge stall or a large replan; the run phase never asks for an approval.
 
 Then work out the one thing every reviewer needs and get it right, because a wrong value silently
 reviews the wrong code: **the command that prints the diff under review** — the arc's cumulative diff
@@ -2727,7 +2906,7 @@ jj diff --from <base revision> --to @-        # @ is the empty working revision;
 ```
 
 **For a test round** — the round named on the PR's last `reopened — test round <N>` line — read from
-that round's **Round base**, which `/test-arc` wrote in the round's own section (§14), to the tip:
+that round's **Round base**, which the test phase wrote in the round's own section (§14), to the tip:
 everything the maintainer has not yet seen. Reviewing the whole stack again would re-litigate rounds
 already accepted.
 
@@ -2781,7 +2960,7 @@ separation of concerns so the three do not report each other's findings.
 ````markdown
 ---
 name: arc-review-what
-description: Arc-wide "what" review — is the finished arc complete and correct? Reads the cumulative diff against the whole plan and reports findings. Read-only, never fixes. Invoked by /run-arc's review phase.
+description: Arc-wide "what" review — is the finished arc complete and correct? Reads the cumulative diff against the whole plan and reports findings. Read-only, never fixes. Invoked by /arc's run phase, in its review.
 model: opus
 effort: high
 maxTurns: 60
@@ -2871,7 +3050,7 @@ and buys nothing.
 ````markdown
 ---
 name: arc-review-how
-description: Arc-wide "how" review — does the finished arc's code look like the rest of the project, and is it idiomatic? Reports findings against the repo's guidelines and its surrounding code. Read-only, never fixes. Invoked by /run-arc's review phase.
+description: Arc-wide "how" review — does the finished arc's code look like the rest of the project, and is it idiomatic? Reports findings against the repo's guidelines and its surrounding code. Read-only, never fixes. Invoked by /arc's run phase, in its review.
 model: sonnet
 effort: medium
 maxTurns: 60
@@ -2958,7 +3137,7 @@ with. Almost everything in this lens is `should-fix` or `note`. `escalate` is ra
 ````markdown
 ---
 name: arc-review-why
-description: Arc-wide "why" review — did the finished arc create value for the product's users? Judges the contribution in the greater context of the project. Read-only, never fixes. Invoked by /run-arc's review phase.
+description: Arc-wide "why" review — did the finished arc create value for the product's users? Judges the contribution in the greater context of the project. Read-only, never fixes. Invoked by /arc's run phase, in its review.
 model: opus
 effort: high
 maxTurns: 40
@@ -3089,8 +3268,8 @@ loses which one is being asked for.
 
 ## 12. Combine and triage, and the review-fix arc
 
-**What this section touches:** the `run-arc` skill from §7, continuing straight on from §11's
-appended phase. No new file.
+**What this section touches:** `RUN.md` from §7, continuing straight on from §11's appended phase.
+No new file.
 
 Merge the three lens blocks, the UI tester's report if there was one, and your own findings into
 **one list**. The lenses overlap on purpose: **when two of them independently flag the same thing,
@@ -3112,18 +3291,22 @@ Then sort every surviving finding into exactly one bucket:
 code: "this delivers no user value" is answered by the maintainer, not by an agent writing more of
 it. **An answered `ask`** (§13) is triaged like any finding — a `fix<n>` todo quoting the answer, a
 `note`, or a replan where the answer widens the arc — so what the maintainer chose for it is never
-lost. **The triage closes, and is logged closed, only once every `ask` of the read carries its
-`answered` line** — and only after re-reading the read's section just before logging, so findings
-the maintainer appended while this triage ran (§14) are triaged with the rest.
+lost. A replan is §9's large end: write its mid-replan note, log `triage closed — nothing to fix`,
+and the arc goes to `planning`, with nothing handed to the maintainer; the planning phase's approval
+later reopens the PRs it gave todos (§9, step 7). **The triage closes, and is logged closed, only
+once every `ask` of the read carries its `answered` line** — and only after re-reading the read's
+section just before logging, so findings the maintainer appended while this triage ran (§14) are
+triaged with the rest.
 
-**A `fix` bucket of more than four means the arc was under-planned.** Do not quietly start a second
-project, and write no todo yet: put the list to the user as one `ask` of the read — fix, defer or
-replan — so it holds the triage open like any other. **Fix**: the triage closes as usual, and the
-review-fix arc below writes the todos. **Defer**: the deferred findings become `note`s, `triage
-closed — nothing to fix` is logged, and the PR stays at `accept`; a defer is a replan too (§9), and
-leaves its trace. **Replan**: §9's large end — write its mid-replan note, log `triage closed —
-nothing to fix`, and the arc goes to `planning`, with nothing handed to the maintainer; `/plan-arc`'s
-approval later reopens the PRs it gave todos (§9, step 7).
+**The size of the `fix` bucket triggers nothing.** Every `fix` finding becomes a review-fix todo,
+however many there are; what widens an arc is an answer to an `ask`, above, never a count.
+
+> **A rule dropped.** An earlier revision held that a `fix` bucket of more than four meant the arc
+> was under-planned, and put the list to the maintainer as one `ask` — fix, defer or replan — before
+> any todo was written. Handed a bucket of five, the originating maintainer answered *"Fix all five
+> and drop that 4 rule"*, and gave no further reason. The count stood in for a question the `ask`
+> bucket already puts finding by finding — whether a fix widens the arc — which is this file's
+> reading of the ruling, not a measured result.
 
 **Nothing is dropped between reads.** A read that starts after a `reopened` line carries forward any
 `fix` finding or `ask` the previous read left unworked. And the maintainer's own testing reads beside
@@ -3188,9 +3371,8 @@ over it. Same loop, same discipline, one revision per todo. The PR goes `accept`
 3. Set the PR heading `running`, then run the ordinary loop, which finds the `fix*` todos as the open
    ones and whose exit writes `accept` again. **Print the fix todos before you start so the user can
    interrupt**; you do not need their approval for mechanical fixes, but they must be able to see
-   them coming. Then take the occupancy reading afresh before the first fix todo starts (§8): the arc
-   review sealed nothing, so no seal has read it for you. A handoff here is resumed from the PR's
-   heading and the review log (§11, *Reading it*), never back into §11's lens fan-out.
+   them coming. A session that is gone before the fix pass ends resumes it from the PR's heading and
+   the review log (§11, *Reading it*), never back into §11's lens fan-out.
 4. **Then you alone do the final review** — what the log sends a session to once the PR is back at
    `accept` and its last line names the fix todos. No lens fan-out this time. Walk the `review.md`
    list and confirm, finding by finding, that each `fix` is actually addressed in the sealed
@@ -3215,7 +3397,7 @@ that keeps re-reviewing its own repairs stops converging and starts inventing wo
 
 ## 13. Handing the arc to the maintainer, and escalating
 
-**What this section touches:** the `run-arc` skill from §7, as its closing phase. No new file.
+**What this section touches:** `RUN.md` from §7, as its closing phase. No new file.
 
 ### The handoff message
 
@@ -3223,15 +3405,17 @@ that keeps re-reviewing its own repairs stops converging and starts inventing wo
 nothing to fix`, or `confirmed` (§11) — so the PR is waiting on the maintainer. Not when the heading
 reads `accept`: the loop writes that before the agents have read anything. A closed read means the
 agents have run out of findings. **It does not mean the PR is finished; whether it is finished is
-the maintainer's call, made by actually using the thing.** This phase asks for that and stops.
+the maintainer's call, made by actually using the thing.** This phase asks for that.
 
 **The maintainer hears earlier that they can start.** At Standard, the clause §7's step (e) appends
-to the progress line when the loop writes `accept` also names `/test-arc <absolute plan directory
-path>` as taking their findings now — one clause, asking nothing, since their testing may read
-beside the agents' (§14).
+to the progress line when the loop writes `accept` also names `/arc <absolute plan directory path>
+<what they found>` as taking their findings now — one clause, asking nothing, since their testing
+may read beside the agents' (§14).
 
-Produce **one message, then wait.** It is a request for a review, not a completion report — do not
-keep working after sending it.
+Produce **one message.** It is a request for a review, not a completion report. Where nothing else
+is planned to run — an arc of one PR, or a grouped arc's last PR — send it and wait for their
+answer; where a later PR is planned, send it and carry straight on into that PR (§8, *Grouping an
+arc into pull requests*).
 
 **The message has a stated shape: an opening that holds what landed, what the maintainer must decide,
 and the copy-pasteable resume line — and ends in a pointer into the plan directory for everything
@@ -3243,7 +3427,8 @@ floor on the maintainer's attention, not a cap on the work:** never trim somethi
 decide in order to fit it — point at what does not fit rather than leaving it out.
 
 Open with **what landed**, one line — *"Arc `<slug>`: 7 todos landed"* — then the resume line,
-`/test-arc <absolute plan directory path>`, so they already have it if they come back with findings.
+`/arc <absolute plan directory path> <what they found>`, so they already have it if they come back
+with findings in a session of their own.
 Then:
 
 - **Try this** — a handful of scenarios in the maintainer's own vocabulary, each a thing to do in the
@@ -3269,7 +3454,8 @@ todo's own handover.
 **Do not ask them to confirm the brief item by item, and do not argue a finding down.** A test round
 costs one planning pass and one loop, and nothing is published until they are satisfied.
 
-**This phase ends the session.** This conversation has nothing left in it that the next one needs.
+**If the maintainer comes back with findings instead, this session takes them into the test phase**
+(§14) and carries on from there; the resume line in the opening is for a session that is gone.
 
 **Only the maintainer's word moves a PR from `accept` to `done`**, and the arc follows with its last
 PR. Nothing else does — not a clean gate, not another lens pass, not your own read of the diff. (The
@@ -3316,32 +3502,27 @@ any work, and an `ask` carrying its `answered` line is never listed again.
 
 ---
 
-## 14. The test phase: `/test-arc`
+## 14. The test phase: `TEST.md`
 
-**What this section touches:** it **adds** two new files — `<home>/skills/test-arc/SKILL.md` and
-`arc-triage.md`. This is the second and last section in Part II that creates a skill of its own; §10
-through §13 were all edits to `run-arc`.
+**What this section touches:** it **adds** two new files — `<home>/skills/arc/TEST.md`, beside
+`RUN.md` and `PLAN.md`, and `arc-triage.md`. This is the second and last section in Part II that
+creates a phase text of its own; §10 through §13 were all edits to `RUN.md`. Like `PLAN.md`, it has
+no frontmatter: the core's phase list names it (§8, *The routing the core gains*), and it opens with
+§5's convention line.
 
 A **test round** turns what the maintainer found while actually using a pull request into todos a
 coder can pick up — or, while the agents are still reading that PR, hands their findings to that
 read.
 
-```yaml
----
-name: test-arc
-description: Plan a test round from the maintainer's findings after they have tested a pull request whose code is done — a PR at `accept`, whether or not the agents' read of it has closed — splits the findings into a numbered list, triages each one with arc-triage, and writes coder-ready todos back into the plan directory for a fresh /run-arc session, or, while the agents' read is still open, hands the triaged findings to that read.
-argument-hint: "[plan directory] [findings]"
----
-```
-
 ### Entry
 
-The maintainer invokes this with findings — pasted into the conversation, or already in a file under
-the plan directory. If the plan directory is not named, find the most recently updated one with a
-PR that can be tested, and **confirm it before doing anything else** — guessing wrong here means
-triaging findings against the wrong arc. Where journeys are installed (§8), search arc directories at
-both depths, and resolve a journey argument to an arc with a PR that can be tested, not to its
-current arc.
+The maintainer's findings arrive as `/arc <plan directory> <what they found>` — or, in a session
+already holding the arc, as a plain message — pasted into the conversation, or already in a file
+under the plan directory. If the plan directory is not named, find the most recently updated one
+with a PR that can be tested, and **confirm it before doing anything else** — guessing wrong here
+means triaging findings against the wrong arc. Where journeys are installed (§8), search arc
+directories at both depths, and resolve a journey argument to an arc with a PR that can be tested,
+not to its current arc.
 
 **Which PR can be tested is decided by the PR's own heading, never the arc's Status**, together with
 its last line in `review.md`'s review log (§11). A PR can be tested when its code is done and it is
@@ -3458,7 +3639,7 @@ either.** Append the round's own question answers, rejected alternatives and rep
 
 **Every round records its own Round base**, a `- **Round base:**` bullet directly under its heading:
 the PR's tip at that moment, recorded as a fixed point (an id that will not resolve to something
-else once later revisions are sealed), written when the section is. `/run-arc` reads it there — its
+else once later revisions are sealed), written when the section is. The run phase reads it there — its
 read of the round runs from it (§11) — and writes none of its own, so a session resuming mid-round
 never rewrites it at a moved tip, and two rounds open on different PRs never overwrite each other.
 
@@ -3470,15 +3651,15 @@ produced no todos runs no pass.
 **Redesign in this arc.** Where step 3's answer is a redesign, write the `## Test round N (PR <k>)`
 section as above — **Not changed**, **Blocked**, its Round base — plus one line per finding the
 redesign is to answer, naming its triage report, and write no todos: the re-entered planner writes
-them as this round's `test<N>.<k>` todos and joins them to those lines (§9, *When `/plan-arc`
-re-enters an arc that holds work*). The redesign lands in this arc, and in a grouped arc in this
+them as this round's `test<N>.<k>` todos and joins them to those lines (§9, *When the planning
+phase re-enters an arc that holds work*). The redesign lands in this arc, and in a grouped arc in this
 pull request, because that is where the maintainer needs it: *"Often I need the fix in the same
 PR."*
 
 **Not beside a live run.** Where grouping is installed and this round is about an earlier pull
 request while another is `running`, a redesign is **not** started (§9, *Replanning*): it becomes an
 ordinary **Blocked** line with its report path, and the handoff tells the maintainer to bring it
-back to `/test-arc` once the live pull request is at `accept` and this round's todos, if any, are
+back to the test phase once the live pull request is at `accept` and this round's todos, if any, are
 sealed. A pass run beside a live run briefs the live pull request's todos as **read-only** — never
 an edit target, though a lens may report one as invalidated, and that report goes into the handoff
 for the maintainer to raise in the live session — and tells the lens to read file contents at the
@@ -3496,25 +3677,27 @@ here, and the arc's **Status** only for a redesign.
   last log line just before writing**: a read that closed since *Entry* takes the next bullet's round
   instead. Where the read has not started yet, the findings get a section of their own in
   `review.md`, headed as a read's section is, which the read starting next adopts. The hand-off says
-  where the findings went, and gives no `/run-arc` line while a session may be working the PR.
+  where the findings went, and gives no `/arc` line while a session may be working the PR.
 - **Once the read is closed** — the PR waiting on the maintainer — a round that produces todos has
   already written the PR `planning` and its `reopened` line (step 4); once the todos are written and
   checked, write the heading `running`. No other PR's heading and not the arc's **Status** changes.
-  Hand it to a new `/run-arc <absolute plan directory path>` session — this session has already spent
-  its context on findings that session does not need to re-read. Beside a live run (§8, *A round on
-  an earlier PR*), the round is taken at the next PR boundary instead, and the hand-off says so and
-  gives no line to run now.
+  **Carry on into the run phase in this session on the maintainer's go**, reading `RUN.md` before
+  acting, and offer `/arc <absolute plan directory path>` only for resuming once this session is
+  gone. Beside a live run (§8, *A round on an earlier PR*), the round is taken at the next PR
+  boundary instead — by the session already running, once the PR now under way is handed off — and
+  the hand-off says so and gives no line to run now.
 - **A redesign in this arc:** write §9's mid-replan note, naming the tested PR and the status its
   heading holds and the findings' triage reports, and its `decisions.md` line saying which findings
   the redesign answers. Log `reopened — test round <N> (redesign)` on the PR when it holds any
   review-log line, so the approval that follows adds no second one (§9, step 7) and the next read
-  stays scoped to the round. Set the arc's **Status** to `planning` and hand back `/plan-arc
-  <absolute plan directory path>` instead of `/run-arc`; the no-todos clause below does not apply.
+  stays scoped to the round. Set the arc's **Status** to `planning` and carry on into the planning
+  phase in this session on the maintainer's go, offering `/arc <absolute plan directory path>` —
+  which routes there now — only for resuming; the no-todos clause below does not apply.
   Where journeys are installed (§8), add one sentence, mentioned and not offered as a branch: once
   this arc is settled, the redesign could instead be planned as the journey's next arc.
 - **A round that produces no todos** — every finding `not-a-defect`, deferred or **Blocked**; the
   redesign branch above is not this case. The PR stays at `accept`: no `reopened` line, no heading
-  write, and no `/run-arc` line, since there is nothing to run. The hand-off names every **Blocked**
+  write, and no `/arc` line, since there is nothing to run. The hand-off names every **Blocked**
   and every deferred finding and where each waits.
 
 ### The round cap is a signal, not a stop
@@ -3535,7 +3718,7 @@ gets tested at all — so they are never capped, only flagged.**
 ````markdown
 ---
 name: arc-triage
-description: Investigates one raw maintainer finding from a test round — locates the code it is about, reads it, and returns a triage verdict (spec, question, not-a-defect, or needs-ui) so a coder-ready todo can be written from it. Read-only, never fixes. Invoked by /test-arc.
+description: Investigates one raw maintainer finding from a test round — locates the code it is about, reads it, and returns a triage verdict (spec, question, not-a-defect, or needs-ui) so a coder-ready todo can be written from it. Read-only, never fixes. Invoked by /arc's test phase.
 model: sonnet
 effort: high
 maxTurns: 60
@@ -3626,9 +3809,11 @@ SHARED ROOT CAUSE: the sibling finding this may share a cause with, and why; "no
 ## 15. What Standard costs and what it buys
 
 **Costs.** Three subagent spawns per todo instead of two. Three more lens spawns per arc, on capable
-models. A planning phase that takes a real conversation rather than a prompt. A heavier skill set:
-expect a run session to start at roughly 50–80k tokens of resident instruction text against a 40k
-baseline with no skill loaded.
+models. A planning phase that takes a real conversation rather than a prompt. More instruction
+text: the core grows with routing but stays under its cap, and each phase reads its own text in
+full — measured in the originating system at about 25,000 words for an ordinary run, re-read after
+every compaction (§8). Before the split into a core and phase texts, a run session there started at
+roughly 50–80k tokens against a 40k baseline with no skill loaded.
 
 **Buys.** The defect classes a per-todo reviewer structurally cannot see — a clause satisfied in todo
 3 and undone in todo 6, an abstraction nothing uses, two todos solving the same thing twice, an arc
@@ -3669,6 +3854,14 @@ exactly where it has looked least, and a todo's boundary is usually drawn straig
 
 **Who should skip it.** Anyone whose arcs are under five todos, or who is planning in a codebase they
 know intimately. It is a phase for plans whose blast radius is uncertain.
+
+**Where it lives: a companion file, `CHALLENGE.md`, beside `PLAN.md`** (§5's companion rules). It
+holds what only the challenge needs — the `challenge.md` format, the round, the progress judgement,
+the two exits — and `PLAN.md` reads it on three triggers: before step 6's first fan-out, before a
+small replan's scoped pass (§9, *Replanning*), and first thing on re-entering an arc that holds work
+(§9). A planning session that never challenges, and every run, then carries none of it. **If the
+read fails, stop and ask**: a challenge run from memory of its rules is the unexamined plan it
+exists to prevent.
 
 **How to know whether it is paying.** Open `review.md` with two counts, computed by reading
 `challenge.md` yourself: **how many of the arc review's findings a challenge finding had already
@@ -3784,7 +3977,7 @@ is no new state of it — and escalate, naming the plan files needed to answer, 
 the lens stated it; what each rework attempted and why the lens still rejects it; and what the phase
 has already spent. **A judgement with no fixed budget has to show the payer the price, not just the
 verdict.** The stall's record is the `unresolved` disposition below, and that is what outlives the
-session: a `/plan-arc` that re-enters the arc finds it there and puts it first (§9).
+session: the planning phase, re-entering the arc, finds it there and puts it first (§9).
 
 **Record, do not rework, once a check finds a stall.** Each surviving finding is recorded as
 `unresolved — <what the rework attempted, and why the lens still objects>`, and exactly the failing
@@ -3915,7 +4108,7 @@ loop.
 ````markdown
 ---
 name: arc-challenge-sequence
-description: Challenge lens run before a plan executes — can each todo in the plan directory be applied to the tree it will meet, given what earlier todos leave behind? Walks the todos in plan order, checks the every-revision-builds invariant and todo sizing, and reports blocking, should-fix or note findings. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
+description: Challenge lens run before a plan executes — can each todo in the plan directory be applied to the tree it will meet, given what earlier todos leave behind? Walks the todos in plan order, checks the every-revision-builds invariant and todo sizing, and reports blocking, should-fix or note findings. Read-only, never fixes. Invoked by /arc's challenge phase, and spawned scoped by its brief for a replan's pass over the todos the replan changed.
 model: opus
 effort: high
 maxTurns: 60
@@ -4014,7 +4207,7 @@ nothing.
 ````markdown
 ---
 name: arc-challenge-research
-description: Challenge lens run before a plan executes — is the plan's research true? Extracts the plan's factual claims, including reach claims about its own blast radius, and tries to falsify each against the repo or the web, citing a source for every claim it accepts. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
+description: Challenge lens run before a plan executes — is the plan's research true? Extracts the plan's factual claims, including reach claims about its own blast radius, and tries to falsify each against the repo or the web, citing a source for every claim it accepts. Read-only, never fixes. Invoked by /arc's challenge phase, and spawned scoped by its brief for a replan's pass over the todos the replan changed.
 model: sonnet
 effort: high
 maxTurns: 60
@@ -4112,7 +4305,7 @@ SUMMARY: at most three sentences
 ````markdown
 ---
 name: arc-challenge-value
-description: Challenge lens run before a plan executes — are we about to deliver something valuable to the world? Holds the plan's Value bullet to a falsifiability standard, walks concrete user interactions end to end, and checks the plan against the issue it claims to answer. Read-only, never fixes. Also spawned scoped, by its brief, for a replan's pass over the todos the replan changed.
+description: Challenge lens run before a plan executes — are we about to deliver something valuable to the world? Holds the plan's Value bullet to a falsifiability standard, walks concrete user interactions end to end, and checks the plan against the issue it claims to answer. Read-only, never fixes. Invoked by /arc's challenge phase, and spawned scoped by its brief for a replan's pass over the todos the replan changed.
 model: opus
 effort: high
 maxTurns: 40
@@ -4270,7 +4463,7 @@ into **one** tester run — never two, since only one session can drive the brow
 ````markdown
 ---
 name: arc-ui-tester
-description: Verifies a change in the already-running application by driving its real UI, and reports pass/fail per scenario with screenshots and read-out values. Never edits code, never touches version control, never starts or restarts the app. Invoked by /run-arc's review phase.
+description: Verifies a change in the already-running application by driving its real UI, and reports pass/fail per scenario with screenshots and read-out values. Never edits code, never touches version control, never starts or restarts the app. Invoked by /arc's run phase, in its review.
 model: sonnet
 effort: medium
 maxTurns: 120
@@ -4422,6 +4615,42 @@ cost above is paid for nothing. An adopter who does code alongside them should i
 costs quoted out loud — the first gate in a freshly seeded workspace above all — and should
 understand that what they are buying is uninterrupted attention, not a faster arc. It also needs a
 VCS with real workspaces, so on git the answer is no regardless of how the maintainer works.
+
+**Who codes is a default, stated, never asked.** The run writes it and goes on; nothing waits for an
+answer. Where `README.md` has no `- **Human coder:**` header bullet yet, the run writes one from the
+adopter's default and says so in one line of its first message — *"assuming you code all of this
+arc's todos; say if not"*. The bullet is a mode, never a list: `none`, or a pointer to the
+`- **Coder:** human` bullets in `todos/`, so it cannot drift against the todo files. At each PR's
+start, and over a test round's todos, the pointer writes the per-todo bullet on every open todo not
+yet touched; `none` writes nothing. A session resumed mid-PR finds touched todos and writes nothing,
+so a todo the maintainer released stays released.
+
+> **One person's default, not a measured rule.** The originating maintainer's: *"The standard for
+> meta arcs is: I code none. The standard for all regular arcs is: I code all. Always assume this at
+> first, tell me you're assuming it, without blocking."* An adopter writes their own default; what
+> carries over is the shape — a default, stated in one line, that blocks nothing.
+
+**"Coders pick up" hands every open todo to the agents until the maintainer says "I'm back".** An
+untouched todo just loses its `**Coder:** human` bullet; a todo they hold mid-edit is released with
+their half-edit kept as the agent coder's starting point, without asking — a human spike, the
+maintainer's own word for what usually happens there; a todo an agent already started stays as it
+is. The mode is recorded the moment it is said, as a ` — coders pick up since <date>` suffix on the
+`**Human coder:**` bullet of every arc the session acts on, so it survives a compaction; while it
+stands, the per-PR write writes nothing. "I'm back" removes the suffix and writes the bullet again on
+every untouched todo of the PR being worked. **A named claim while the suffix stands writes its own
+bullets and leaves the mode alone**: the maintainer taking one todo has not said they are back.
+
+**Where it lives: two companion files beside `RUN.md`** (§5's companion rules). `HUMAN.md` holds the
+human path — the claim rules, the return vocabulary, the print a human todo gets, reconciling a
+resumed arc's half-finished human work — and `CONCURRENCY.md` the second workspace and the drain
+below. `RUN.md` keeps only the who-codes default above and the triggers that read them: an open todo
+with a `**Coder:** human` bullet, an un-drained spike, or a second workspace live on disk. **If a
+triggered read fails, stop and ask**: the maintainer's half-finished work reconciles only by the
+rules in those files, and running on without them would absorb it into a revision or skip it unseen.
+
+> **Measured, by `wc -w`, in the originating system:** the human companion was about 6,600 words
+> and the concurrency companion about 4,400 — words an agent-coded run, the common case there, no
+> longer reads at entry or after any compaction.
 
 **The essential shape, if you do install it:**
 
@@ -4576,8 +4805,9 @@ The system is changed while arcs are planned and run against it, so every sessio
 repository — works under two rules, which the originating maintainer stated in one breath: *"1.
 Improvements should go back to you as a session-to-session message. 2. Changes are happening all the
 time, if something seems inconsistent, give feedback and if you can't figure out on your own ask a
-human."* Write them as a closing section of `run-arc`, cited by one line at the end of `plan-arc` and
-`test-arc` and by the `FINDING:` field above.
+human."* Write them as a closing section of `RUN.md`, cited by one line in the core's *What every
+phase shares* — so every phase carries the pointer without restating the rules — and by the
+`FINDING:` field above.
 
 1. **Improvements go back as a message.** A session holding the store's role records a finding
    itself. Any other session sends what it notices about the system, a tips file or an agent brief —
@@ -4596,8 +4826,24 @@ human."* Write them as a closing section of `run-arc`, cited by one line at the 
    values forward, *"Old plans just break. Supervisors have to figure it out and ask. This is better
    than carrying tons of rules forward."*
 
+3. **Every handoff asks one token-saving question**: where did this work spend tokens that a change
+   to the system — a skill text, a companion's trigger, an agent brief, a tips file, the loop's
+   shape — would have saved? Answer from what the session can still see, in a few lines and with no
+   spawn or read the handoff does not already make: the concrete place and, where it can tell, the
+   rough size — a re-read, a rework cycle, a subagent that read more than it needed. One finding per
+   handoff at most, sent per point 1. **Where the answer is none, send and record nothing**: a "none
+   found" is not a finding, and a store that files them fills with noise. It sits wherever the
+   handoff's other checks sit — in the originating system, the watch-order companion (§21).
+
+> **Where it came from.** The originating maintainer asked for it in passing, as one small todo:
+> *"they should give you feedback on how they might have saved tokens by changing the arc system."*
+> It sits at the handoff because that is the one check every phase runs, in every repository. No
+> count yet says how many findings it has produced; and that the session that spent the tokens is
+> the best placed to say where — before a compaction summarises it away — is this file's reasoning,
+> not the ruling's.
+
 Without the store installed, point 1 has no recipient: findings go to the maintainer at the handoff,
-as before. Point 2 holds regardless.
+as before, and point 3's one line rides in the handoff message. Point 2 holds regardless.
 
 ---
 
@@ -4734,9 +4980,10 @@ whenever the maintainer asks.
 from their own corpus as a coherence test: a corpus that cannot be extracted coherently has an
 incoherence in it, though a clean extraction says nothing about whether the rules help — **the
 meta-arc's handoff in the system's own repository says, in one line, that an extraction is owed**,
-with a copy-pasteable line that starts it in a fresh session — at the handoff where no PR holds an
-open todo any more, not at an earlier PR's. It announces and never runs the extraction: reading the
-whole corpus in a session the handoff is about to end is the wrong place for it. At the handoff, not
+at the handoff where no PR holds an open todo any more, not at an earlier PR's. The session starts
+it on the maintainer's go, as an activity of its own after the handoff, and the line carries a
+copy-pasteable prompt for starting it once this session is gone. The handoff itself only announces:
+reading the whole corpus inside a handoff is the wrong place for it. At the handoff, not
 at `done`, because a meta-arc's `done` can lag by weeks on watch-order evidence, and an incoherence
 is cheapest to attribute right after the arc that introduced it.
 
@@ -4745,6 +4992,27 @@ is cheapest to attribute right after the arc that introduced it.
 > its way through a handoff. Two extractions fell due on the same day and neither ran until the
 > maintainer noticed and briefed a session by hand. Putting the line in the handoff the meta-arc
 > already passes through is what makes it fire every time.
+
+**Where it lives: a companion file, `WATCH.md`, beside `RUN.md`** (§5's companion rules), read at
+every handoff of every phase in every repository — it holds the check above, the line printed when
+nothing fired, and, where installed, §19's token-saving question. The run, planning and test texts
+each point to it at their handoff, by path in prose; **if the read fails, stop and ask**, since a
+handoff without the check is indistinguishable from one where it never ran.
+
+**Optional beside it: an instruction-prose check in the per-todo reviewer.** Offer it to a user
+whose arcs edit text a model will read — a skill, a companion, an agent brief, an instruction file.
+It is one more numbered check in `arc-reviewer.md` (§6, or §10's variant), skipped for any other
+diff, code comments and user docs included, and it judges the changed text against six heuristics: a
+rule states its reason; its actual reader can follow it; it generalises beyond the incident that
+prompted it; every line pulls its weight; detail lives where it is needed, in an on-demand file a
+pointer reaches; a `description` says what the file does and when to use it. A `description` that
+drops its *when*, a file nothing points to, or an instruction its reader cannot follow can carry a
+`revise`; the rest is a minor finding prefixed `(taste)`, which never forces one.
+
+> **Not invented here.** The heuristics are Anthropic's `skill-creator` skill's, which the
+> originating maintainer adopted as the standard for such text; the repository's own instruction
+> files and House rules win where they disagree. At extraction time it had just been added and no
+> arc had yet run under it.
 
 **What it costs.** A section in some plans, a check at every handoff of every arc, and arcs whose
 PRs wait on the maintainer for days or weeks to be answered. **A meta-arc parked that way is the
@@ -4770,9 +5038,12 @@ is not writing meta-arcs, this is dead weight — say so plainly.
 <home>/                          user-level: applies in every project
   agents/<name>.md               one subagent per file
   skills/<name>/SKILL.md         one skill per directory; the directory name is the command
-  skills/<name>/*.md             companion files, loaded only when SKILL.md says to read them
-  scripts/context-usage.py       the occupancy reader the session rule reads (§8)
-  plans/arc-<slug>/              one directory per arc
+  skills/arc/SKILL.md            the arc skill's core: routing and shared rules, under its cap (§5)
+  skills/arc/RUN.md              a phase text, read in full when routing lands on it; PLAN.md
+                                 and TEST.md beside it at Standard (§8)
+  skills/arc/<NAME>.md           companion files, read only on the trigger a phase text states
+  plans/arc-<slug>/              one directory per arc — or, with journeys installed,
+  plans/journey-<slug>/arcs/NN-<slug>/   every arc nested in a journey (§8)
 <project>/.claude/agents/        project-level: applies only in that project
 <project>/.claude/skills/
 ```
@@ -4792,8 +5063,8 @@ consequence — the plan is not backed up by the repo's remote — is a real one
 The harness scans `agents/` for markdown files with frontmatter. **The `description` field is the
 discovery surface** — it is what the harness matches against a task when choosing an agent, and what
 a supervisor reads when deciding which to spawn. Write it as a complete sentence describing the job,
-its inputs and its outputs, and end it by naming who invokes it (`Invoked by /run-arc`), so an agent
-browsing the roster can tell a loop component from a general-purpose helper.
+its inputs and its outputs, and end it by naming who invokes it (`Invoked by /arc's run phase`), so
+an agent browsing the roster can tell a loop component from a general-purpose helper.
 
 The spawn is by `name`. The brief the supervisor passes becomes the agent's task; the agent file's
 body becomes its system prompt. **The agent inherits no conversation history** — only its own file,
@@ -4804,15 +5075,15 @@ its brief, and whatever instruction-file hierarchy the harness loads automatical
 `skills/<dir>/SKILL.md` with `name: <dir>` is invocable as `/<dir>`. Two routes in, and the skill
 must work under both:
 
-- **Explicit:** the user types `/plan-arc 123`. `argument-hint` is what the harness shows them.
+- **Explicit:** the user types `/arc plan issue 123`. `argument-hint` is what the harness shows them.
 - **Implicit:** the user says "plan an arc for issue 123" and the harness loads the skill because its
   `description` matched. **This is why the description must contain the words a user would actually
   say**, not just a precise technical summary.
 
 **The rendered skill body enters the conversation as one message and stays there.** It is paid for on
-every turn of that session. This is the whole reason for companion files: anything a run does not
-always need — rationale, an optional subsystem, a reference table — goes in a companion file that
-costs nothing until the skill tells the session to read it.
+every turn of that session. This is the whole reason for phase texts and companion files: anything
+a session does not always need — another phase's procedure, rationale, an optional subsystem, a
+reference table — goes in a file that costs nothing until the skill tells the session to read it.
 
 > **Measured:** loading a large run skill started a session at 51.9k or 78.3k tokens against a
 > 40–42k baseline with no skill loaded. **Resident instruction text is the second-largest cost lever
@@ -4827,8 +5098,23 @@ looks obviously right.
 - **Agent file edits bind the next delegation, in the same session, with no restart.** A new file
   inside an existing `agents/` directory is picked up; a new `agents/` *directory* needs a restart.
 - **Skill edits bind the next invocation — but re-invocation *appends*.** A skill invoked again with
-  changed content leaves **both** copies in context, competing. **After editing a skill, start a
-  fresh session before using it.**
+  changed content leaves **both** copies in context, competing. **After editing the core, start a
+  fresh session before using it.** A phase text or companion is a file the session reads, not an
+  invoked body, so an edit to one reaches the session's next read of it.
+- **A compaction re-attaches invoked skill bodies cut short, and drops the oldest.** Measured on one
+  version: each re-attached body cut at exactly 20,000 characters, against a documented budget of
+  5,000 tokens per skill and 25,000 across all of them. Text past the cut is gone until re-read,
+  which is why the core has a cap and why the session re-reads its phase text after every compaction
+  (§4, §5).
+- **The read tool refuses a file over a token limit — 25,000 tokens in Claude Code — even when the
+  read is ranged.** A long phase text is read in consecutive chunks (§5's chunked read rule); a
+  single read is not a safe assumption for a file that grows.
+- **The skill-directory placeholder is substituted only in the invoked body.** Claude Code's
+  `${CLAUDE_SKILL_DIR}` becomes a path in `SKILL.md` as rendered, and stays literal in any file the
+  session merely reads — so a phase text or companion opens with one line saying what the
+  placeholder means there (§5).
+- **Hooks can fire on compaction.** Claude Code runs a `SessionStart` hook with the matcher `compact`
+  right after one, and a `PostCompact` hook beside it; §8 installs the first and offers the second.
 - **Nested spawning works.** A subagent granted the agent-spawning tool can invoke it, and its own
   subagent replies. This was probed. But **the supervisor cannot see or bound what a subagent
   spawns**, so any brief that permits delegation must carry an explicit cap and require the agent to
@@ -4842,12 +5128,10 @@ looks obviously right.
 - **A live subagent sends nothing until it returns.** Silence is not evidence of a stall. Do not
   re-spawn on silence alone; elapsed time past roughly twenty minutes is the only signal.
 - **The session token counter is a budget, not a context gauge.** It starts far above the window size,
-  so a rule phrased as "hand off at 50% of context" cannot read it. **The session transcript can be
-  read instead:** every assistant turn records its token usage, and §8's occupancy reader takes the
-  figure from there. It needs the session's own id, which Claude Code exposes as
-  `$CLAUDE_CODE_SESSION_ID`, and a window size the transcript does not record. **A rule may not
-  assume a measurement the harness does not offer** — it would look precise while quietly never
-  firing — so check the reading exists in the user's harness before installing a rule built on it.
+  so a rule phrased as "hand off at 50% of context" cannot read it; the session transcript, which
+  records every turn's token usage, can. **A rule may not assume a measurement the harness does not
+  offer** — it would look precise while quietly never firing — so check the reading exists in the
+  user's harness before installing a rule built on it.
 
 ---
 
@@ -4894,7 +5178,8 @@ and linear in resident text.**
 > **Four measured dead ends — do not spend time on these.** Tool output: 3.5 MB total across 21
 > sessions. HTML comments in agent and skill files: 3.1 KB total. Review-cycle churn: recorded cycles
 > ran 9×1, 3×2, 1×3 — the loop does not loop. Agent body size: 3–12 KB against a ~22.2k-token spawn
-> floor. **All four are noise next to session length.**
+> floor. **All four are noise next to session length** — which, once compaction carries a session,
+> is bounded by the compaction window (§8).
 
 ---
 
@@ -4993,7 +5278,7 @@ placeholder to disk.** In order:
    - **Test gate:** UNSET — as above.
    ```
 
-   and say, in the **first** line of your report, that `/run-arc` will refuse to start a todo until
+   and say, in the **first** line of your report, that `/arc` will refuse to start a todo until
    both are filled in. The skill in §7 carries exactly that refusal, and it is what converts a silent
    misinstall into a loud one.
 
@@ -5090,16 +5375,24 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
 
   **Reading a pull request is not an outward-facing act.** The originating maintainer, on a rule that
   read PRs only on request: *"You can always read a PR, no idea where that rule comes from. It's
-  always ok to use gh to read the PR, check on CI, see if someone reviewed etc."* So **every session
-  start reads the arc's recorded pull requests** — before anything that depends on which PR is open
-  — and reports, one line each: a PR merged or closed (every session while it stands, since it is
+  always ok to use gh to read the PR, check on CI, see if someone reviewed etc."* So **the arc's
+  recorded pull requests are read at every session start, at each PR boundary inside a running
+  session, after every seal, and after every compaction** — before anything that depends on which PR
+  is open — since a session that carries on for days would otherwise read the forge once. It
+  reports, one line each: a PR merged or closed (every session while it stands, since it is
   state; the upper stack then needs rebasing); a review or comment by anyone but the maintainer, the
-  arc system or a bot, newer than the last read, with the offer to take it into `/test-arc` — a
+  arc system or a bot, newer than the last read, with the offer to take it into the test phase — a
   colleague's remark is not the maintainer's finding until they say so; and failing CI. Take the
   time *before* the first read and store it, after a read that succeeded, in a
   `- **Forge read:** <UTC timestamp>` bullet, so each comment is reported once; a failed read says
   so and leaves the bullet alone. **The read acts on nothing**: it moves no status and no todo, and
   answers no comment.
+
+  **Where it lives: a companion file, `PR.md`, beside `RUN.md`** (§5's companion rules), holding the
+  forge read and the pull-request summary. The run phase reads it when the arc's `README.md` records
+  an issue or a pull-request URL, and a session that compacted runs the forge read before carrying
+  on, since it sits outside what the compaction re-read names (§8, the hook's fourth item). A team without a forge, or an
+  arc with no recorded PR, never reads it.
 
 ### Also settle, in one line each
 
@@ -5153,19 +5446,22 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
   notes in files an agent is told to read by name.** A subagent inherits the instruction-file
   hierarchy but **does not** inherit an on-demand file, so an agent that needs those rules must be
   told to read that file explicitly.
-- **A statusline script, backup-push rules, a session-memory protocol.** All machine infrastructure,
-  none of it the arc system. (Cross-session messaging used to sit on this list; it is now how a
+- **A statusline script, backup-push rules, a session-memory protocol, and the compaction-window
+  plumbing** — a per-session window setting and the statusline that shows it — along with the
+  companion file that held the originating repository's own handoff extras. All machine
+  infrastructure, none of it the arc system; §8 keeps the one portable part, that the window is the
+  cost lever. (Cross-session messaging used to sit on this list; it is now how a
   finding reaches the store, §19's *Constant improvement*, so only its harness mechanics are left
   out.)
 
 ### Compressed, and what was compressed out
 
-- **The run skill shrank by roughly two-thirds.** What went: every branch of the private-branch
+- **The run text shrank by roughly two-thirds.** What went: every branch of the private-branch
   topology; the human-coding-seat machinery (summarised in §18); the pull-request assembly (summarised in
   §24 Q6); history hygiene; the backup push; and the watch-order check (summarised in §21).
   **What was kept in full: the loop, the verdicts, every branch of step (c), the sealing discipline,
   the recording step, and the standing rules.**
-- **The planning skill shrank by about half.** What went: the plan-mode file-count exception and the
+- **The planning text shrank by about half.** What went: the plan-mode file-count exception and the
   legacy-plan expansion, both artefacts of one harness's history; the watch-order section; and most of
   the cross-references. **What was kept: all seven steps, the sizing rules, the "Done when" standard,
   the Value bullet, the story conversation, and the whole challenge procedure.**
@@ -5173,9 +5469,10 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
   verbatim in substance.** The `FINDING:` line was moved to the optional layer (§19 — the observations store), since it is
   meaningless without a store to write to. Model tiers and turn ceilings are kept with their
   measurements, because a reader who changes them should see what they were sized against.
-- **The rationale files.** The originals kept a companion `RATIONALE.md` per skill, mirroring its
-  heading structure, holding the argument for each rule — deliberately off the resident path, since it
-  is needed only when someone considers *changing* a rule. **That pattern is worth copying**, and it
+- **The rationale files.** The originals kept a rationale file per phase text — `RUN-RATIONALE.md`
+  and `PLAN-RATIONALE.md` beside the core — mirroring its heading structure, holding the argument for
+  each rule, deliberately off the resident path and never re-read after a compaction, since it is
+  needed only when someone considers *changing* a rule. **That pattern is worth copying**, and it
   is why this file carries its reasons in blockquotes: a reader changing a rule can see what it cost
   to learn.
 
@@ -5195,14 +5492,19 @@ Said plainly, because an adopting user is better served by knowing which parts e
   phase and the supervisor then walked the scenarios itself — which is precisely the failure the
   "check the app is up *before the loop*" rule was added to prevent. The brief is good; the evidence
   that it gets used is thin, and the rule that makes it reachable matters more than the brief does.
-- **The session rule (§8) is the least proven rule that governs every run.** Its predecessor, a
-  session grouping estimated against a ~54-turn target, ran a median of **99** real turns per
-  session against that target, p90 194, max 296, and was retired for a measured reading. The reading
-  itself is known to work: in the first run held to it, every handoff and progress report named an
-  occupancy figure, no grouping was proposed, and the first review-fix todo was preceded by a fresh
-  reading. **What has not yet been seen is the threshold being crossed**: that run peaked at 36.5% of
-  a 1M window, so no session has yet packed up on it. Install it, keep its *pack up, do not ask*
-  shape, and tell the user the one part still waiting on evidence.
+- **Carrying on through compaction (§4, §8) is the least proven rule that governs every run.** It
+  replaced a session rule that had never been seen to fire, and the reason it is safe — the re-read
+  of the core, the phase text and the arc's `README.md` after every compaction, with the steps taken
+  from what was just read — rests on one fact: a summary paraphrases, and the files do not. **What
+  has not been measured is how it holds over many compactions in one session**, and **which
+  compaction window is best**: a smaller window keeps the context, and so every turn, cheaper, at
+  one more re-read each time it fires. At extraction time the originating maintainer was running
+  sessions at several windows side by side to find out, and a hook that held compaction back while a
+  coder was in flight had been tried and dropped (§8). Install it with the compaction hook, offer
+  the compaction log, and tell the user both open questions.
+- **The core's cap (§5) is a harness measurement, and the core sits close to it.** At extraction the
+  originating core was 25 characters under its 14,000. Growth is asked about, not gated; a user who
+  adds routing should measure, and move a rule into a phase text before raising the cap.
 - **Nine-agent fan-outs (§16)** are easy to install and hard to justify without the two counts at the
   top of `review.md`. If the user takes the challenge phase, insist on those counts. **A phase nobody
   measures is a phase nobody can cancel.**
@@ -5288,12 +5590,15 @@ Work through this with the user. Tick each line out loud.
       fast-gate exception beside it.
 - [ ] `<home>/agents/arc-reviewer.md` written (§6) — **the Core variant, the one that runs the
       gate itself** — with **no** `Edit`, `Write` or `NotebookEdit`.
-- [ ] `<home>/skills/run-arc/SKILL.md` written (§7), with the build and test gates from Q2 filled
-      in everywhere the template says `<build gate>` / `<test gate>`. **Then grep the written file
-      for `<build gate>` and `<test gate>` and confirm zero hits.** A placeholder written to disk is
-      the most common silent misinstall of this system; §24 Q2 says what to do when there was no user
-      to ask, and it is never to leave the placeholder.
+- [ ] `<home>/skills/arc/SKILL.md` (the core) and `<home>/skills/arc/RUN.md` written (§7), with the
+      build and test gates from Q2 filled in everywhere the template says `<build gate>` /
+      `<test gate>`. **Then grep both files for `<build gate>` and `<test gate>` and confirm zero hits**,
+      and check the core with `wc -m`: at most 14,000 characters (§5). A placeholder written to disk
+      is the most common silent misinstall of this system; §24 Q2 says what to do when there was no
+      user to ask, and it is never to leave the placeholder.
 - [ ] `<home>/plans/` exists.
+- [ ] Optional, where the harness has a hook on compaction: the post-compaction re-read hook
+      (§4, *Carrying on through compaction*; its text in §8), adapted to the user's paths.
 - [ ] `chronic` is available, or step (d) has been rewritten to use the build command's own quiet
       form.
 - [ ] The repo's agent-instruction file actually loads (Q4). If not, the one-line fix was offered.
@@ -5301,69 +5606,79 @@ Work through this with the user. Tick each line out loud.
 
 **Standard**
 
-- [ ] `arc-gatekeeper.md` written (§10) and the briefs in `run-arc` updated to spawn it alongside the
+- [ ] `arc-gatekeeper.md` written (§10) and the briefs in `RUN.md` updated to spawn it alongside the
       reviewer **in one message**.
 - [ ] `arc-reviewer.md` **overwritten** with the Standard variant (§10), which runs no gate. Two
       reviewer files on disk, or a Core reviewer left in place beside a gatekeeper, is the failure to
       look for here.
 - [ ] Step (c) carries the combination rule and the five-bounce cap.
 - [ ] `arc-review-what.md`, `arc-review-how.md`, `arc-review-why.md` written (§11).
-- [ ] `plan-arc/SKILL.md` written (§9), including the pre-plan step and the Value-bullet standard.
-- [ ] `test-arc/SKILL.md` and `arc-triage.md` written (§14).
-- [ ] There is exactly **one** `<home>/skills/run-arc/SKILL.md` — §10 through §13 were merged
-      into the file §7 wrote, and no second run-arc skill exists anywhere. Check by listing
-      `<home>/skills/`; this failure is silent otherwise.
-- [ ] The two statuses (§3, §8) are in every skill and they agree: each PR's in its `### PR <k>`
+- [ ] `skills/arc/PLAN.md` written (§9), including the pre-plan step and the Value-bullet standard.
+- [ ] `skills/arc/TEST.md` and `arc-triage.md` written (§14).
+- [ ] The core routes all three phases (§8, *The routing the core gains*), and is still under its
+      cap.
+- [ ] There is exactly **one** arc skill, `<home>/skills/arc/`, and one `RUN.md` in it — §10 through
+      §13 were merged into the file §7 wrote, and no `run-arc`, `plan-arc` or `test-arc` skill
+      directory exists. Check by listing `<home>/skills/`; this failure is silent otherwise.
+- [ ] The two statuses (§3, §8) are in every phase text and they agree: each PR's in its `### PR <k>`
       heading (`planning`/`running`/`accept`/`done`), the arc's in its bullet
       (`planning`/`underway`/`done`/`aborted`), and no stop for the maintainer writes either. Every
       index has at least `### PR 1`. `review.md` opens with the review log (§11), and every reader
       that must tell a PR still being read from one waiting on the maintainer reads its last line.
-- [ ] `plan-arc`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
+- [ ] `PLAN.md`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
       index summary rather than a second list.
-- [ ] Every index entry carries **summary bullets** (§3), in `plan-arc`'s template and in both
+- [ ] Every index entry carries **summary bullets** (§3), in `PLAN.md`'s template and in both
       places that append to an index afterwards (§12, §14).
-- [ ] Replanning (§9) is defined once, in `plan-arc`, and cited rather than restated from
-      `run-arc`'s `needs-replan` and `design-question` branches, its review-fix arc (§12) and
-      `test-arc`'s rounds (§14); `plan-arc` has its re-entry path and step 7's approval writes; the
+- [ ] Replanning (§9) is defined once, in `PLAN.md`, and cited rather than restated from
+      `RUN.md`'s `needs-replan` and `design-question` branches, its review-fix arc (§12) and
+      `TEST.md`'s rounds (§14); `PLAN.md` has its re-entry path and step 7's approval writes; the
       loop picks every open todo by status, never by id, and `--only` / `--from` take a todo id.
-- [ ] The session rule (§8) is in `run-arc`'s step (e): occupancy read before every revision, no new
-      revision at or past ~50%, pack up without asking. `scripts/context-usage.py` is written, its
-      `WINDOW` set to the user's model, and run once with the session's own id
-      (`"$CLAUDE_CODE_SESSION_ID"` in Claude Code) to show it returns a figure — or, in a harness
-      that records no per-turn usage, the absence of a reading said plainly (§8). No
-      session-grouping question appears anywhere.
+- [ ] The session carries on through compaction (§4, §8): no phase ends the session, prints a line
+      for a fresh one except for resuming, or reads its own context occupancy; the planning scratch
+      file is written before a plan directory exists and folded in at step 5; and, where the harness
+      offers it, the compaction hook is installed and names the core, the phase text and the arc's
+      `README.md`. The old session-rule script, if a previous install wrote one, is gone.
 
 **Optional — only what the user chose**
 
-- [ ] Challenge phase: three lens briefs, step 6 of `plan-arc`, the `challenge.md` format including
+- [ ] Challenge phase: three lens briefs, the `CHALLENGE.md` companion read from step 6 of `PLAN.md`
+      and its two other triggers, the `challenge.md` format including
       the `exited` disposition, the empirical-exit rule and the `(replan)` round (§16), **and the two
       counts at the top of `review.md`**, which leave `(replan)` rounds out.
 - [ ] `OBJECTIVES.md` written (§25) if any objective of this setup is not legible from the mechanism
       — with the `OBJECTIVES` line added to whichever value lenses were installed, and the
-      relay-don't-triage rule in `run-arc` (§12).
-- [ ] UI tester: the brief, plus the "is the app up?" check **before the loop**, in both skills.
+      relay-don't-triage rule in `RUN.md` (§12).
+- [ ] UI tester: the brief, plus the "is the app up?" check **before the loop**, in both phase texts.
 - [ ] Human coding seat and spike queue: only for a maintainer who actually codes alongside the
       agents, and only on a workspace-capable VCS. Quote §18's costs **and** its objective together.
+      `HUMAN.md` and `CONCURRENCY.md` are companions beside `RUN.md`, read on their triggers; who
+      codes is written as a default and stated, never asked.
 - [ ] Observations store: the protocol file, the `FINDING:` line added to every brief, and the
-      *Constant improvement* section in `run-arc`, cited from `plan-arc` and `test-arc` (§19).
+      *Constant improvement* section in `RUN.md`, cited from the core, with the token-saving question
+      at every handoff (§19).
 - [ ] Citation gate: only for a prose corpus.
 - [ ] Watch orders: only if the user writes agent instructions as a deliverable. With the
       observations store also installed, the store's role closes a meta-arc on evidence (§21), and
       every other arc is still closed by the maintainer's word alone. If the user keeps a portable
-      extraction of their system, the meta-arc's last handoff announces that one is owed (§21).
-- [ ] Journeys (§8): only for a user whose work regularly outgrows one arc. Every skill tells an arc
+      extraction of their system, the meta-arc's last handoff announces that one is owed (§21). The
+      check lives in `WATCH.md`, read at every handoff. The reviewer's instruction-prose check
+      (§21) is offered to anyone whose arcs edit model-read text.
+- [ ] Journeys (§8): only for a user whose work regularly outgrows one arc. Every new plan is
+      written nested, and older shapes on disk are left as they are; every phase tells an arc
       directory by its `todos/`, never by a House rules section; a journey argument never runs an
-      arc at `planning`; observation files and workspaces are named by arc id; a
+      arc at `planning`; the next arc can be planned beside a run; observation files and workspaces
+      are named by arc id; a
       journey's `over` is the maintainer's answer to a question, never written on the writer's own.
 - [ ] Grouping an arc into pull requests (§8): only for a team whose arcs reach review as pull
-      requests and are sometimes too large for one. The grouped rules sit in `run-arc`'s on-demand
-      companion file, read only when the index has more than one `### PR` heading or a round on
-      another PR, and the run stops if that read fails; one definition of *a PR holds an open todo*
-      (§4), cited everywhere; a PR waiting on the maintainer beside a later `running` one is never
-      settled for routing; the lens and triage briefs get one PR's diff.
+      requests and are sometimes too large for one. The grouped rules sit in `GROUPED.md`, an
+      on-demand companion beside `RUN.md`, read only when the index has more than one `### PR`
+      heading or a round on another PR, and the run stops if that read fails; one definition of *a
+      PR holds an open todo* (§4), cited everywhere; a PR waiting on the maintainer beside a later
+      `running` one is never settled for routing; a PR's end carries straight on into the next; the
+      lens and triage briefs get one PR's diff.
 - [ ] With a pull-request workflow (§24 Q6): the reviewed guard, not a published one; the forge read
-      at every session start, with its `**Forge read:**` timestamp; each PR's URL and bookmark
-      recorded.
+      at every session start, PR boundary, seal and compaction, with its `**Forge read:**`
+      timestamp, in the `PR.md` companion; each PR's URL and bookmark recorded.
 
 **Finally, tell the user three things:**
 

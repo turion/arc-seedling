@@ -23,8 +23,10 @@ Three files, one job: hand the arc system to someone who does not have it.
    Core alone is a working system and delivers real value.
 4. **Offer the Standard layer (Part II)** and add it if the user wants planning and review phases,
    which most will. **Install it by growing the files you already wrote, never by writing a second
-   copy of one.** §9 and §14 add two new skills; everything else in Part II is an edit to the
-   `run-arc` skill and to the agent briefs from step 3.
+   copy of one.** §9 and §14 add two phase texts, `PLAN.md` and `TEST.md`, beside `RUN.md` in the
+   one `arc` skill; everything else in Part II is an edit to the core, to `RUN.md`, and to the agent
+   briefs from step 3 — bar §8's compaction hook, which is a settings entry, neither a skill nor a
+   brief edit.
 5. **Present the Optional layer (Part III) as a menu with prices**, not as a list of features. Each
    optional piece states what it costs and what it buys. Quote both.
 6. Check your work against §26, the installation checklist.
