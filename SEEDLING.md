@@ -179,7 +179,7 @@ often lost in adaptation:
 ## 3. The plan directory (Core)
 
 The plan directory is the arc. It lives **outside the repository under work** — typically
-`<home>/plans/arc-<slug>/`, or `plans/journey-<slug>/arcs/01-<slug>/` once journeys (§8) are
+`<home>/plans/arc-<slug>/`, or `plans/journey-<slug>/arcs/<slug>/` once journeys (§8) are
 installed — so that planning churn never appears in the repo's own history, and
 so that a plan survives a branch being deleted.
 
@@ -269,10 +269,16 @@ an agent may write the todos, write the code or read it; the value says which of
   `running` (code is still to be written for it, whether or not a session is on it now) → `accept`
   (its code is written and is being read, and the next step decided: back to `planning` with
   findings, or on) → `done` (merged, or the maintainer overrules — and where there is nothing to
-  merge, their word alone).
+  merge, their word alone); or `aborted` (closed without merging, on the maintainer's word alone,
+  its todos kept on disk).
 - **The arc's status**, in the `Status` bullet: `planning` (its plan is being written) → `underway`
   (the plan is approved; which PR is doing what is in the PR headings, not here) → `done` (every PR
-  is `done`), or `aborted`.
+  is `done` or `aborted`, at least one `done`), or `aborted` (rejected at planning, or every PR
+  `aborted`).
+
+**Wherever a rule reads "every PR `done`" as the end of an arc, an `aborted` PR counts as closed
+beside it.** Otherwise a PR the maintainer closed without merging would leave the loop coding its
+todos, and the arc open forever.
 
 **A stop for the maintainer is no status.** When a run stops on a question, every status stays where
 it was, and the question is recorded where it was asked — a todo's own file, at Core — so a resumed
@@ -353,7 +359,8 @@ you open the file, and headings are what a document outline shows.
 **Statuses:** `todo` → `in-progress` → `done`, plus `design-question` when the loop stopped for the
 human. (Standard adds `human-coding`; see §18.) A heading may also read `deferred`, `dropped` or
 `superseded` after a replan; **none of those is open work**, so a PR whose only unsealed todos carry
-them holds no open todo (§4).
+them holds no open todo (§4). Standard reads all of these through one vocabulary shared with the
+arc and the PR, and says which word on disk means which state (§8, *The Status vocabulary*).
 
 ### Writing "Done when" as the reviewer's standard
 
@@ -615,7 +622,9 @@ its size. Three rules make that safe, and the supervisor skill (§7) states all 
   an answered question — never batched for a later moment. A compaction cuts wherever it fires, so
   a write saved for a seam is lost when the cut comes first. Step (e) is the main instance.
 - **After a compaction, re-read before acting**: the skill's core, the phase text the session was
-  following, and the arc's `README.md`. A step is taken from the text, never from the summary's
+  following, and of the arc's `README.md` its header bullets, its todo index and its House rules —
+  for each arc the session still has work on, and skipping any file already in context whole (§8
+  has what that saved). A step is taken from the text, never from the summary's
   paraphrase of it. A summary paraphrases precisely the strings the loop needs verbatim — the gates,
   revision ids, todo statuses — while keeping the conversational texture the loop has no use for;
   and a skill body the harness re-attaches after a compaction can come back cut short (§5 says how
@@ -1169,9 +1178,10 @@ which would reset an `in-progress` todo whose coder is still live and spawn a se
 
 The session carries on through automatic compaction; one cuts wherever it fires, so the plan
 directory is written current at every decision. **Do not wrap up early, hurry, or skip a step to
-save context.** **After a compaction, re-read this file, the phase text you were following and the
-arc's `README.md` before acting.** A step is taken from the text, never from the summary's
-paraphrase of it.
+save context.** **After a compaction, before acting, re-read this file, the phase text you were
+following and, for each arc with work left, of its `README.md`, its header bullets, todo index and
+House rules.** Skip a file already in context whole. A step is taken from the text, never from the summary's paraphrase
+of it.
 
 ## What every phase shares
 
@@ -1229,7 +1239,7 @@ Preflight the working copy:
   heading `running`, and go on.
 - **The PR is `accept`.** Its code is written; there is no loop to run. Tell the user it is waiting
   on their reading (*After the loop*, below), and stop.
-- **The PR is `done`.** Say so, and stop.
+- **The PR is `done`, or `aborted`** (closed without merging). Say so, and stop.
 - **The PR is `running`.** Go on.
 
 **An open question is listed before any work is chosen.** A todo whose heading reads
@@ -1395,7 +1405,8 @@ copy of the same state only drifts.
 
 The PR is at `accept`: its code is written and is now the user's to read. Name the plan directory and
 stop. **Only the user's word that it is finished moves it on**: then write the PR heading `done`, and
-the arc's **Status** `done` with it. Findings instead send the PR back: its heading goes to `planning`
+the arc's **Status** `done` with it. Their word that it is closed without merging writes both
+`aborted` the same way. Findings instead send the PR back: its heading goes to `planning`
 while each finding is written as a new todo under it, then to `running`, and the loop runs again.
 
 ## Standing rules
@@ -1421,7 +1432,7 @@ while each finding is written as a new todo under it, then to `running`, and the
   does.
 - **The session carries on through compaction.** Write the plan directory current at every
   decision, never batched; do not wrap up early to save context; after a compaction, re-read the
-  core, this file and the arc's `README.md` before the next step (the core's *Compaction*).
+  core, this file and the `README.md` parts the core's *Compaction* names before the next step.
 ````
 
 **Those two files are the one `arc` skill, now and after any upgrade.** If the user later takes
@@ -1547,22 +1558,45 @@ instruction removes that dependency. In Claude Code it is a `SessionStart` hook 
 `hookSpecificOutput.additionalContext`. The message, adapted to the user's paths:
 
 ```
-Context was just compacted. Re-attached skill bodies may be cut short; what was cut is gone until
-re-read. Before any further action, read in full, in consecutive chunks if one read is refused:
-(1) the /arc core, <home>/skills/arc/SKILL.md; (2) for each arc you were acting on, the text of the
-phase you were acting in, the companions that text's own triggers call for against the arc's
-present state — derived from the text, not from what the summary says was read — and the arc's
-README.md; (3) if you were planning before a plan directory existed, planning-rulings-<slug>.md in
-this session's scratchpad; (4) where §24 Q6's forge read is installed and the arc records a
-pull-request URL, run it before continuing. Name the arc and its phase in your first line. Re-read
-nothing else. Then continue where the summary says you were, taking each step from the text you just read, never
-from the summary's paraphrase.
+Context was just compacted. If this session runs no /arc phase — a subagent, a review or challenge
+lens — ignore this message. Re-attached skill bodies may be cut short; what was cut is gone until
+re-read. Before any further action, read, in consecutive chunks if one read is refused: (1) the
+/arc core, <home>/skills/arc/SKILL.md, in full, unless its re-attached body above runs whole to its
+last section; (2) for each arc with work left for this session, the text of the phase you were
+acting in, the companions that text's own triggers call for against the arc's present state —
+derived from the text, not from what the summary says was read — and of the arc's README.md only
+its header bullets, its todo index and its House rules (an arc waiting on the maintainer: its
+header bullets only); (3) if you were planning before a plan directory existed,
+planning-rulings-<slug>.md in this session's scratchpad; (4) where §24 Q6's forge read is installed
+and the arc records a pull-request URL, run it before continuing. Name the arc and its phase in your
+first line. Re-read nothing else, and no file already in context whole. Then continue where the
+summary says you were, taking each step from the text you just read, never from the summary's
+paraphrase.
 ```
+
+Where the backlog shape is installed (*State in a Backlog.md backlog*, below), step (2) also names
+`STATE.md`'s shape test and the section of the arc's own shape, and for a backlog arc the README
+parts that section lists.
 
 > **Why "re-read nothing else".** A full re-read of the originating run skill after a compaction
 > cost about 70,000 tokens. Naming the core, one phase text, the companions it triggers and the
 > README is what the split above made cheap — so no rationale file and no phase the session was not
 > in.
+
+> **Why only part of the README, and only arcs with work left.** Measured across every compaction
+> in one day's sessions, on a 1M-token context compacted at 300k: the first turn after a compaction
+> stood at 55–68k tokens (system prompt and tools, the summary, files the harness re-attaches by
+> itself), and the hook's re-read then took it to 110–260k. The maintainer's words: *"supervisors
+> come back with 17% context filled after compact. That only leaves 13% for further work"* — of the
+> 30% the window allows. One supervisor re-read a 1,582-line
+> arc README and needed about 150 lines of it, the header, the index and the newest round; another
+> re-read a 2,110-line README of an arc parked waiting on the maintainer and used one bullet of it;
+> a third re-read its core although the harness had just re-attached it whole. The rule was cut to
+> what those reads used. Its own effect on the fill has not yet been measured (§25).
+
+> **Why a subagent is told to ignore it.** The hook fires in every compacted session, subagents
+> included: compacted review lenses reported being told to re-read the core and the phase texts, of
+> which they have no use.
 
 **Optional: a log of every compaction.** A second hook — `PostCompact` in Claude Code — can append
 one record per compaction: the time, the session, the window in force, the context just before, and
@@ -1616,10 +1650,11 @@ vocabulary*, below) and each PR's last line in `review.md`'s review log (§11):
 4. **The PR being worked at `planning`, or with none as in 3 any PR at `planning`:** its last log
    line says who was writing its todos. A fix pass (`triage closed — fix todos: …` or `fix todos:
    …`) → the run phase, writing any todo it names that is not on disk yet; a cut-off test round
-   (`confirmed`, `triage closed — nothing to fix` or `reopened — test round <N>`) → the test phase,
-   finishing that round; anything else → the planning phase, a replan.
-5. **Every PR `done` or waiting on the maintainer** → the run phase, which hands it over or says the
-   arc is finished.
+   (`confirmed`, `triage closed — nothing to fix` or `reopened — test round <N>`, but not
+   `reopened — test round <N> (redesign)`) → the test phase, finishing that round; anything else, a
+   redesign's line included → the planning phase, a replan.
+5. **Every PR `done`, `aborted` or waiting on the maintainer** → the run phase, which hands it over
+   or says the arc is finished.
 
 **Starting a run sets no Status**: approval wrote the arc `underway` and each PR `running`. Where
 journeys are installed, a journey directory first resolves to one arc (*Journeys*, below).
@@ -1638,7 +1673,9 @@ One session may hold arcs in different phases: the next arc's planning beside th
 below). Three rules, written into the core:
 
 - **Every turn that acts on an arc names, in its first line, the arc and the phase it acts in**, so a
-  compaction's summary can tell whose rules the turn followed.
+  compaction's summary can tell whose rules the turn followed. **Every message names an arc by its
+  gist** — "the Backlog.md arc", a few words of what it is about — never by its position ("arc 9"),
+  which the maintainer has to translate back, and which changes when a journey's list is reordered.
 - **A phase change reads the new phase's text before acting, and says the previous phase's rules do
   not apply to the turn.** Planning writes plan files and the test phase round todos; the run phase
   writes no code, and no todos beyond its own review-fix todos and the loop's index appends.
@@ -1657,8 +1694,44 @@ below). Three rules, written into the core:
 bullet. A stop for the maintainer is no value of its own: it leaves every status where it is, and the
 open question is recorded where it was asked — a `design-question` todo's own file, an `ask` in
 `review.md` (§13), or `challenge.md`'s `unresolved` disposition for a challenge stall (§16). What
-Standard adds is **who writes each transition**, and the one thing a PR's heading cannot say on its
-own.
+Standard adds is **one vocabulary for all three levels**, **who writes each transition**, and the
+one thing a PR's heading cannot say on its own.
+
+**One list of five words serves the arc, the PR and the todo**, each level taking a subset:
+
+| word | meaning | arc | PR | todo |
+|---|---|---|---|---|
+| `planning` | todos being written | ✓ | ✓ | — |
+| `running` | code still to be written or read | ✓ | ✓ | ✓ |
+| `accept` | code being read, next step decided | — | ✓ | — |
+| `done` | finished | ✓ | ✓ | ✓ |
+| `aborted` | stopped, kept on disk | ✓ | ✓ | ✓ |
+
+**Who is coding a todo is its assignee, never its status.** A `running` todo is assigned the coder
+agent while it codes, the maintainer while they do (§18), and nobody while it waits — or while it is
+stopped on an open design question, since then nobody is coding it.
+
+**The plan files of §3 spell some of these states with older words**, and keep doing so: a todo file
+has no assignee field, so its heading's word carries who is coding it. A reader maps them:
+
+| word on disk | at | read as |
+|---|---|---|
+| `underway` | arc | `running` |
+| `todo` | todo | `running`, unassigned |
+| `in-progress` | todo | `running`, assigned the coder agent |
+| `human-coding` | todo | `running`, assigned the maintainer (§18) |
+| `design-question` | todo | `running`, unassigned, with an open design question |
+| `deferred`, `dropped`, `superseded` | todo | `aborted` |
+
+The PR's words are the same on disk as in the vocabulary. Every other word is read as typed. Where
+this file names an old word, it means that spelling of the state; the backlog shape (*State in a
+Backlog.md backlog*, below) writes the five words as they are.
+
+> **Why one vocabulary.** The originating system had one list for the arc, one for the PR and a
+> third for todos, in which `in-progress` and `human-coding` differ only by who is coding. Laid side
+> by side while planning a move to a store that validates statuses, they drew the maintainer's
+> question: *"do you think we might benefit by unifying the vocabulary?"* One list with a subset per
+> level is what such a store validates against, and it leaves the "who" to a field built for it.
 
 **A pull request's transitions:**
 
@@ -1676,6 +1749,9 @@ own.
   where watch orders (§21) and the observation store (§19) are both installed:** a meta-arc's PRs are
   closed by the session holding the store's role once its watch order's evidence is in, because for
   a meta-arc there is nothing for the maintainer to test (§21).
+- **any PR not yet `done` → `aborted`**: the maintainer's word that it is closed without merging —
+  normally from `accept`, but they may close one earlier. Written by whoever writes a PR's `done`,
+  never on anyone's own say. Terminal; its todos stay on disk.
 
 **`accept` alone does not mean the agents are finished.** The loop writes `accept` the moment the
 code is written, *before* the agents read it (§11), because reading is what `accept` names. Whether
@@ -1694,13 +1770,20 @@ are done".
   replan large writes its mid-replan note first and moves the arc here; the PR headings keep their
   values; the arc goes back to the planning phase, whose approval returns it to `underway`. Never
   beside a live run on another pull request (*Grouping an arc into pull requests*, below).
-- **`underway` → `done`**: written together with the last PR's `done`, by whoever writes that `done`.
-  Where journeys are installed, this write may also ask whether the journey is over (*Journeys*,
-  below).
+- **`underway` → `done`**: written together with the last PR's `done` or `aborted`, by whoever
+  writes it, when at least one PR is `done`. Where journeys are installed, this write may also ask
+  whether the journey is over (*Journeys*, below).
 - **`planning` → `aborted`**: the pre-challenge gate's answer was **abort** (§9). Nothing moves an
   arc out of `aborted` — it is the one terminal value besides `done` — and **the plan directory
   stays on disk, readable**: the rejected decomposition is the only record anywhere that one was
   proposed and what it said.
+- **`underway` → `aborted`**: written together with the last PR's `aborted`, when every PR is
+  `aborted` — the maintainer's word, as for that PR.
+
+**A todo's status** is `running`, `done` or `aborted` (spelt on disk as the table above has it):
+`running` covers every todo still to be coded or read, whoever is coding it; `done` is sealed;
+`aborted` is taken out of the plan, its file kept. The loop writes it (§4, steps a, c and e; §18 for
+the maintainer's own todos), and a replan writes `aborted` for a todo it drops.
 
 **The vocabulary is cyclic per pull request, not terminal**: findings — the agents' read, the
 maintainer's testing, a colleague's review — send a PR back to `planning` and round again, while the
@@ -1735,6 +1818,10 @@ review.md                   the review log, then each read's triaged findings, w
                             the run phase (§11, §12)
 research/<name>.md          background too long for a todo: triage reports, prior investigation
 ```
+
+Where the backlog shape is installed (*State in a Backlog.md backlog*, below), a new arc has no
+`todos/`, no index in its `README.md` and no `Status` bullet — those are tasks in its journey's
+backlog — and every other file here stands as written.
 
 **Write nothing else into these files — each is owned by exactly one phase**, so it is never
 ambiguous which one may add to it, with two listed exceptions, the last two bullets:
@@ -1807,11 +1894,23 @@ only ever have one arc included:
 ```
 journey-<slug>/
   README.md              the initial prompt verbatim, a Status of embarked | over, ## The arcs
-  arcs/01-<slug>/        arc 1: a complete plan directory, with a `- **Journey:**` bullet linking up
-  arcs/02-<slug>/        a later arc, the same
+  arcs/<slug>/           the first arc: a complete plan directory, with a `- **Journey:**` bullet
+                         linking up
+  arcs/<slug>/           a later arc, the same
   decisions.md           decisions spanning arcs — from arc 2 on, opening with a pointer into arc 1's
   research/<name>.md     background spanning arcs — likewise from arc 2 on
 ```
+
+**An arc is named by its gist**, its few-word name — the bold title of its `## The arcs` entry —
+and its directory is `arcs/<slug>/`, the slug taken from the gist, with **no number**: its order
+lives only in `## The arcs`, so reordering the list renames nothing. Every message names it by that
+gist too (*Several arcs, one session*, above).
+
+> **Why no number.** The originating system wrote `arcs/01-<slug>/`, `arcs/02-<slug>/`, and its
+> messages said "arc 9". The maintainer: *"Arc numbers are often confusing because order of arcs
+> changes. … It's easier for me to refer to arcs by their "gists" (really short summary) instead of
+> their number."* A directory already written with a number keeps it, since an arc's directory
+> never changes (below).
 
 A journey of one arc has no journey-level `decisions.md` or `research/`: its decisions go in arc 1's,
 where the planning scratch file folds too (§9). When arc 2 is planned, the journey's own
@@ -1836,13 +1935,15 @@ revision — `todos/` beside the journey's own `README.md` — is an arc too, an
 second arc by a skill**: before any write for one, name it to the maintainer and ask whether they
 nest it by hand or start the next arc as a new journey. Nothing is moved or renamed on their behalf.
 
-**What makes a directory an arc:** a `README.md` with a `todos/` directory beside it. **Never** the
-presence of a House rules section, because a nested journey's README carries House rules its arcs
-share — a skill that searched for House rules would pick up the journey README as a plan to run.
+**What makes a directory an arc:** a `README.md` with a `todos/` directory beside it — or, where the
+backlog shape is installed, a directory its journey's backlog names in an arc task (below). **Never**
+the presence of a House rules section, because a nested journey's README carries House rules its
+arcs share — a skill that searched for House rules would pick up the journey README as a plan to
+run.
 
 **A journey's current arc is derived, never stored.** An arc is **settled for routing** — nothing
 has more work to do on it unprompted — when it is `done` or `aborted`, or `underway` with every PR
-`done` or **waiting on the maintainer** (`accept`, its automatic read closed: *The Status
+`done`, `aborted` or **waiting on the maintainer** (`accept`, its automatic read closed: *The Status
 vocabulary*, above). Everything else is unsettled: an arc at `planning`, and an `underway` arc with
 any PR at `planning`, `running`, or `accept` with its read still open — work left to write, to code,
 or for the agents to read. A nested journey's current arc is the first planned entry in `## The
@@ -1903,11 +2004,14 @@ already holds the detail, so nothing is lost. Anything a later arc still needs m
 `decisions.md` or `research/`, and is never deleted. In the originating maintainer's words,
 *"compression and continuity are the same requirement here."*
 
-**Wherever an arc's name becomes a file or workspace name, use its arc id.** Every journey has an
-arc `01-…`, so a bare directory name would collide across journeys. The arc id is
-`<journey slug>-<N>-<slug>` for a nested arc — the only form written now — and `<slug>` for an older
-`plans/arc-<slug>/` or flat journey on disk, which the slug check above keeps from colliding.
-Watch-order observation files (§21) and concurrency workspaces (§18) are the two places this bites.
+**Wherever an arc's name becomes a file or workspace name, use its arc id.** Two journeys can each
+have an arc of the same directory name, so a bare directory name would collide across them. The arc
+id is `<journey slug>-<slug>` for a nested arc — the form written now — `<journey slug>-<N>-<slug>`
+for one already written with a number, and `<slug>` for an older `plans/arc-<slug>/` or flat journey
+on disk, which the slug check above keeps from colliding. A nested id can still collide — journeys
+`a` and `a-b` could both reach `a-b-c` — so choosing an arc's slug includes checking that its arc id
+equals no other arc's, derived from a listing of the plan directories. Watch-order observation files
+(§21) and concurrency workspaces (§18) are the two places this bites.
 
 **Lenses judging a nested arc are given the journey README's path as well** (§11, §16), since a lens
 handed only the arc directory cannot know it exists. **One lens invocation covers one arc
@@ -1971,7 +2075,8 @@ ahead inside the arc — not this rule's.
 **"A PR holds an open todo"** is §4's definition, cited by every site that needs it (the loop's
 exit, the handoff, every `done` write, the store's close, routing): any todo of its group not yet
 sealed, counting the group's review-fix todos and its test rounds' todos as its own, and not
-counting a `deferred`, `dropped` or `superseded` one. The test is open todos, never a PR's position:
+counting an `aborted` one (`deferred`, `dropped` or `superseded` on disk). The test is open todos,
+never a PR's position:
 the last PR can still hold a round, and an earlier one can hold one while the last runs.
 
 **Each PR carries its own status** (§3), and each moves alone: a round on PR 1 sends PR 1 back to
@@ -1995,7 +2100,8 @@ whose summary is no record — cannot trust a pick it remembers. The maintainer:
 additionally compare to github/forge status"* — the comparison is §24 Q6's forge read. The bullet is
 **written once per PR boundary and at no other moment.** A boundary is a moment — a session's start,
 or, inside a running session, the close of a PR's automatic read — at which the bullet is absent, or
-the PR it names is `done` or **waiting on the maintainer** (*The Status vocabulary*, above).
+the PR it names is `done`, `aborted` or **waiting on the maintainer** (*The Status vocabulary*,
+above).
 Everything a session's start does at a boundary, the in-session boundary does too: the forge read,
 this write, and recognising a test round, in that order. Bare `accept` is not a boundary: the loop
 writes it before the agents read, so a session resumed between a PR's last seal and its review would
@@ -2109,6 +2215,248 @@ PR's todos as one list, reviews the cumulative diff and hands off as one pull re
 > written from one stack the originating maintainer had run by hand, and rewritten once since for
 > per-PR statuses; their watch order (§21) was still unanswered.
 
+### State in a Backlog.md backlog: the backlog shape
+
+**Optional, needs journeys (§8), and the least proven piece of this file** — see *Honest status*
+at the end of this subsection. It is a second shape of the plan directory: a new arc keeps its
+statuses, its todos and its index as tasks in a [Backlog.md](https://github.com/MrLesk/Backlog.md)
+backlog at its journey's root, written through one script that refuses an invalid state, instead of
+in markdown headings any edit can mistype. The markdown shape of §3 stays the default, and every arc
+already written keeps its shape to its end.
+
+**What it costs.** The Backlog.md CLI (`backlog`) installed — a markdown-file task tracker with a
+terminal board and a local web view; one script, `arc-state`, which the originating system wrote in
+about 1,100 lines of Python with the standard library only, and which the adopter writes from the
+contract below; one more companion, `STATE.md`, of about 280 lines; and an edit to every phase text
+and to every brief that reads a todo, so that each act names its `arc-state` command for this
+shape. Each call to `backlog` was measured at 125–205 ms of wall time. Upstream releases fast and
+has broken writes before (*What the store does not check*, below), so pin a version and re-probe
+after an upgrade.
+
+**What it buys.** A status outside its level's words, a todo under the wrong parent, a broken
+cross-level rule or a duplicate id is **refused at the write, or reported by `arc-state check`
+before a phase acts on it** — where in the markdown shape a mistyped heading is read back as typed.
+The index the maintainer reads at the planning gates keeps its form, rendered from the tasks rather
+than stored beside them, so there is no second list to fall out of step. And a board shows every
+todo one line each, with who is coding it.
+
+> **The problem, measured.** In the originating system an arc's state was read or written at 247
+> sites across 18 files of the system — statuses in a README bullet and in headings, each todo's in
+> its file's first line, the index, header bullets, Revision bullets, the review log — each site
+> naming its own storage, and nothing checking any of it: statuses were read by script off free
+> text, index bullets went stale, three arcs sat outside the watch-order pool on an outdated status
+> word, and one planning renumbered todos by script. The maintainer's request: *"Tracking todos, plans,
+> journeys, the way we do it now seems error prone, and in some cases too much work."*
+
+**Offer it** to a user who already has journeys and whose plan state has started to drift. Everyone
+else skips it, and nothing in the markdown shape changes.
+
+#### First: one companion that names where state lives
+
+Before any arc can live in a backlog, every reader and writer of state has to stop naming a
+heading. **`STATE.md`**, a companion beside `RUN.md`, names each **kind** of state an arc keeps and,
+for each shape, how it is read and how it is written:
+
+- what makes a directory an arc; the arc's status; the arc's repo; a PR's status;
+- a todo's status and assignee; who is *to* code a todo (the claim, §18) and the human-coder mode;
+- a todo stopped on a design question; the todo index and the board;
+- a todo's text and Revision; the run's other writes into a todo (the Done-when ticks, the handover,
+  a human coder's objections and their resolutions);
+- the header bullets; the review log's last line; a test round; a journey's status and
+  `## The arcs`.
+
+Every site in the phase texts and briefs then names the state it touches and points into `STATE.md`,
+and the backlog shape edits only the acts it does differently. In the originating system this was a
+pull request of its own, shipped first and changing nothing on disk. **An install with only the
+markdown shape does not need `STATE.md`.**
+
+`STATE.md` opens with **the shape test, stated once**. A directory under the plans directory is an
+arc in the **markdown shape** when it has a `todos/` beside its `README.md`; in the **backlog shape**
+when its journey — the nearest ancestor holding a backlog — has an arc task whose project is the
+directory's name. Anything else is not an arc, a nested journey's README included. A directory with
+both a `todos/` and an arc task is a defect to report, never one to migrate.
+
+**What a resumed session reads of it.** The opening, the shape test, and **the whole section of its
+arc's own shape and not the other's** — every write a phase text makes points into that section for
+the word on disk, so the session most likely to write a status is never told to skip how. For a
+backlog arc, of the arc's state it reads `arc-state check`, then `arc-state board`, then of the
+README only its header bullets, its House rules and the newest bullet of its `## Test rounds`. An arc
+waiting on the maintainer gets its header bullets only. The compaction hook (§8, above) names this
+read.
+
+#### The layout
+
+The backlog lives at the journey root, `journey-<slug>/backlog/`, created without git integration by
+the journey's first backlog-shape arc. **The arc is a task, its PRs are its subtasks, its todos
+theirs**, every task carrying the arc's directory name as its project. A todo task holds the whole
+todo: its summary bullets in a `**Summary.**` block at the head of its description, its Files and
+Spec in the rest of the description, its Done-when clauses as acceptance criteria, the coder's
+progress and the supervisor's handover as notes, its Revision as the final summary.
+
+The arc directory keeps the prose: `README.md` (header bullets, Context, Story, Verification, House
+rules, and a `## Test rounds` section once a round has run), `decisions.md`, `challenge.md`,
+`review.md` with its review log, `research/`. It has **no `todos/`, no `## Todos` and no `Status`
+bullet** — the arc task's status is the one copy — and a large replan's note is a `- **Mid-replan:**`
+header bullet of its own, present only while the replan lasts. **Every link in a task's text is an
+absolute path**, since the task file sits in the backlog, where a relative link into the arc
+directory resolves to nothing.
+
+**Words.** The five words of the vocabulary, written as typed — an arc takes `planning`, `running`,
+`done`, `aborted`; a PR all five; a todo `running`, `done`, `aborted`. Who is coding a todo is the
+assignee field (`@arc-coder`, `@human`). Three labels carry what is not a status: `coder-human`, the
+claim on a todo the maintainer is to code (§18), kept apart from the assignee because the claim is
+written for every open todo of a PR at its start and the assignee only for the one in flight;
+`design-question`, on a todo that stays `running` and unassigned while it waits for an answer; and
+`round-<N>`, on a test round's todos.
+
+#### What the store does not check
+
+Backlog.md validates a status, a type and a project against the lists in its configuration, at the
+CLI. It does **not** check which status a type may take — one status list serves the whole backlog;
+it reads a hand-edited file back **unvalidated**, an invalid status included; its board and browser
+view show every arc's tasks mixed, and a card dragged there writes a status without looking at the
+type and rewrites the task order; and it assigns ids in creation order. Facts measured against
+version 1.55.1, worth a tips file of their own (§25): a script must pass `init` a project name, or it
+fails without a terminal, and `--agent-instructions none`, or it writes an `AGENTS.md`; `config set`
+refuses the status, type and project lists, which are edited in `config.yml` directly; a criterion
+is one line, and a newline inside one leaves an orphan line behind; a task cannot be moved to another
+parent; and two machines syncing one backlog can mint the same id, after which `task list` itself
+fails until `backlog doctor --fix --yes` renumbers one. One upstream build printed a warning on every
+`task create`, wrote nothing and exited 0.
+
+**So every write goes through `arc-state`, and no skill writes a task file with an editor or calls
+`backlog` to write.** The rule is met by the script, not by a hook blocking edits: `check` finds what
+a hand edit, a sync or a drag left behind.
+
+#### `arc-state`: its contract
+
+Call it by its absolute path (in Claude Code, `<home>/scripts/arc-state`), from any repository. It
+drives `backlog` with the backlog's location set in the environment, reads metadata through
+`backlog task list --json`, and reads a task file only for its `**Summary.**` block. Every command
+takes the arc directory, `init` the journey directory:
+
+```
+init <journey dir>
+create arc <arc dir> <gist>
+create pr <arc dir> <title> [--summary-file F]
+create todo <arc dir> <k> <todo id> <title> --summary-file F --body-file F
+            [--ac TEXT]... [--label L]... [--coder human]
+set <arc dir> <arc | pr k | todo id> <word>
+edit <arc dir> <todo id> [--title T] [--id N] [--summary-file F] [--body-file F] [--ac TEXT]...
+     [--after <todo id> | --first] [--coder human | --coder none] [--label L]... [--unlabel L]...
+check-ac <arc dir> <todo id> <n>...
+assign <arc dir> <todo id> <@who | none>
+revision <arc dir> <todo id> <change-id> <line>
+note <arc dir> <arc | pr k | todo id> --file F
+path <arc dir> [<todo id>]
+index <arc dir>
+board <arc dir>
+check <journey dir | arc dir>
+```
+
+- **Ids.** `pr k` is the arc task's k-th PR task in creation order; a PR taken out of the arc is
+  `aborted`, never deleted, so k never shifts. A todo's id is its plan number (`1`, `fix1`,
+  `test2.1`), carried as the title's `<id>. ` prefix and **never reused or renumbered**; the
+  store's own ids (`ARC-1.2.3`) never name a todo to the maintainer. `init` writes the statuses,
+  types and projects lists into `config.yml` itself, since the CLI refuses to set them.
+- **Every write is checked before it lands.** The script applies the write in memory and runs the
+  integrity check on the result; the write is **refused when the result holds a defect the current
+  state does not**, printing that defect and its repair. A write that clears a defect, or leaves one
+  as it was, lands — so a hand edit to one todo never locks the run out of the rest of the arc.
+  `revision`, `check-ac` and `note` change no field a rule reads and skip the comparison. Each write
+  prints the changed task and its new value in one line; a refusal prints its reason on stderr and
+  exits non-zero.
+- **`check`** prints one `<task file>: <rule broken>` line per defect, each followed by an indented
+  `repair:` line naming the write that clears it, and exits 1 if there is any. Its rules: a status
+  inside its level's subset; the hierarchy — a todo under a PR, a PR under an arc, an arc task with no
+  parent and a project naming a directory under `arcs/`, every task typed, a todo id used once per
+  arc; a todo's labels, `design-question` only on a `running` todo; the cross-level rules of *The
+  Status vocabulary* — an arc at `done` has every PR closed, a PR at `accept` or `done` holds no
+  `running` todo, a PR at `running`, `accept` or `done` sits under an arc at `planning` only while
+  the README carries a `- **Mid-replan:**` bullet, a todo with an assignee is `running`; and the
+  store's own duplicate ids and dependency cycles. It never repairs anything itself; it names the
+  command.
+- **`index`** prints the todo index in exactly the markdown shape's form — `### PR <k> — <title> —
+  status: <word>`, a PR's why-bullet, each todo as `N. [title](link)` with its summary bullets, and a
+  `## Test round <N> (PR <k>)` section rendered from the todos labelled `round-<N>` — leaving
+  `aborted` todos out. Each link's target is the task file's absolute path, and **the same path
+  follows the link on its line as visible text**, so a maintainer who copies one line at a gate has
+  the path whatever the terminal does with links.
+- **`board`** prints the arc, then each PR and under it its todos in order, `aborted` ones included,
+  with each todo's assignee, labels and Revision change-id; it runs `check` first and prints its
+  defect lines above its own.
+- **`edit`** rewrites one todo in one store call, so a refusal changes nothing; `--ac` replaces the
+  acceptance criteria as a whole, keeping the tick on a criterion whose text is unchanged, and joins
+  a hand-wrapped clause into the one line a criterion must be; `--after`/`--first` reorder within the
+  PR. A todo cannot move to another PR: the move is `create todo` under the new PR with a new id, and
+  `set … aborted` on the old.
+- **A summary file** holds the todo's summary bullets already indented for the index (`index` adds
+  no indentation), with no blank line among them. It is written to a scratch file and read back
+  before it is passed, so the bullets are authored as the README's were, never composed into a
+  command line.
+- **`path`** prints a todo's task file, or with no id every todo's, `aborted` ones included.
+
+**Two write orders follow from the cross-level rules.** At approval the arc is written `running`
+first and its PRs after, since a PR at `running` under an arc still at `planning` is a defect; at a
+close the PR is written `done` first and the arc after.
+
+#### What each phase does differently
+
+- **Planning (§9, step 5).** `arc-state init` once per journey, then `create arc`, `create pr` per PR
+  in order, `create todo` per todo in order. Both gates print a fresh `arc-state index` into the
+  message **as it comes out, never retyped**. A redirect edits in place — `edit`, `create todo`,
+  `set … aborted` — and the objection lines before the second showing name todos by their unchanged
+  ids.
+- **Replanning (§9).** A changed summary, body or Done-when is `edit`; an added todo is `create todo`
+  with the next unused id, placed by `edit --after`; a dropped one is `set … aborted`, a deferred one
+  the same plus a `note` saying where it went; a dropped PR is `set pr k aborted` and each of its
+  todos `aborted` too. A todo added under a PR at `accept` or `done` needs that PR rewound first
+  (§9, *A PR sent back from `accept`*); the script refuses it otherwise.
+- **The run (§4, §7).** Reconciliation and the pick of each next todo read `check`, then `board`; **a
+  defect stops work on that arc** until the repair `check` names is made, and no todo is picked past
+  it. Step (a) is `assign … @arc-coder`. The seal's record, step (e), runs in a fixed order:
+  `check-ac` on the criteria the reviewer confirmed, `note` with the handover under `**Handover:**`,
+  `revision`, then `set … done`, which also clears the assignee and any `design-question` label. The
+  handover goes first so a resumed session can tell the cases apart: a todo still `running` with a
+  Revision recorded and a `**Handover:**` note is a seal cut off at its last write, finished by `set
+  … done`. A design question is `edit --label design-question`, `assign … none` and a `note` under
+  `**Question:**`; the answer is `edit --unlabel design-question` and a `note` under
+  `**Design decision:**`.
+- **The arc review (§11).** Each lens brief carries the `arc-state index` output and every todo's
+  task path, `aborted` ones included, since the directory holds no `todos/` to read.
+- **A test round (§14).** `set pr k planning`, the round's todos by `create todo … --label
+  round-<N>`, then `set pr k running`; what the markdown shape's round section holds besides its
+  todos — the Round base, the **Not changed** and **Blocked** lines, a redesign's per-finding lines —
+  is one bullet per round in the README's `## Test rounds`.
+- **The human coding seat (§18).** The claim is the `coder-human` label (`create todo --coder human`,
+  `edit --coder human | none`); the todo in their hands is assigned `@human`; their objections,
+  questions and the resolution of each are notes under `**Objection:**`, `**Question:**` and
+  `**Resolution:**`, since a reader of a task's notes needs a lead-in to find each one.
+- **The agent briefs.** The coder and the reviewer are given their todo's task file and told how it
+  reads: the description holds the Spec and Files, the acceptance criteria (`- [ ] #n`) are the
+  Done-when clauses. **The coder's one write into the plan becomes `arc-state note`** for its
+  progress trail, and it runs no other write. **A progress note never opens with any of the
+  supervisor's lead-ins** — `**Handover:**`, `**Objection:**`, `**Resolution:**`, `**Question:**`,
+  `**Design decision:**` — because a resumed session reads one there as the supervisor's own record,
+  and a coder's `**Handover:**` would read as a seal cut off at its last write, skipping the drain
+  and its review. The reviewer reports which criteria hold and ticks none: a tick is the
+  supervisor's write. The challenge and review lenses get the rendered index and the task paths.
+- **Nothing is migrated.** The first arc planned after this shape is installed is the first written
+  in it; arcs already planned stay markdown to their end, and `STATE.md` reads both. Journey state —
+  `embarked`/`over`, `## The arcs` — stays markdown.
+- **A status line**, where the user has one (§25), reads a backlog arc's statuses straight off its
+  task files' `status:` lines, which is faster than any CLI call, and shows a warning mark beside an
+  arc or PR whose word is outside its level's subset rather than dropping it from the line.
+
+> **Honest status.** At extraction time **no arc had yet run in this shape.** Every claim above rests
+> on scratch probes: one real arc mirrored into a scratch backlog, whose `arc-state index` printed
+> its markdown index line for line, links aside; seeded defects of each kind, each reported by
+> `check`, with the clean mirror passing; and a status-line read of a scratch arc inside its 0.3 s
+> budget. Whether the maintainer reads the rendered index at a gate as well as the hand-written one,
+> whether supervisors keep every write behind the script in practice, and whether the
+> post-compaction read of a backlog arc comes out smaller than a markdown arc's are the open
+> questions of a watch order (§21) that fires only when the first arc is planned in the shape.
+
 ---
 
 ## 9. The planning phase: `PLAN.md`
@@ -2204,6 +2552,8 @@ the plan directory. Step 5 folds it into `decisions.md`.
 
 With the pre-plan approved and its research run, **settle the story first**, then write the directory
 in the layout of §8, in this same session — pre-planning, writing and challenging are one phase.
+Where the backlog shape is installed, a new arc's todos, PRs and statuses are written as tasks
+instead, by the `arc-state` commands §8 lists under *What each phase does differently*.
 **Fold the planning scratch file into `decisions.md` as part of that write**, each ruling and
 correction verbatim as a question-and-answer line (§3); a ruling that decided nothing leaves no line,
 and the scratch file has then done its work.
@@ -2264,8 +2614,9 @@ finding later, at the arc review, when the claim is held against the finished co
 
 With the plan directory written and step 6's fan-out **not yet spawned**, show the maintainer the
 index summary: `README.md`'s `## Todos` list — link, title and summary bullets, exactly as it
-stands. **Print it in the message itself.** Do not point at the file and invite them to go read it;
-the whole ask this gate answers is that they not have to open anything to decide direction.
+stands (in a backlog-shape arc, §8, the output of `arc-state index`, printed as it comes out and
+never retyped). **Print it in the message itself.** Do not point at the file and invite them to go
+read it; the whole ask this gate answers is that they not have to open anything to decide direction.
 
 **It waits.** Other questions in this design proceed when no answer comes, because guessing wrong
 there costs one correction at the next boundary. This one is not that: it exists for no reason but
@@ -2273,14 +2624,16 @@ to be an abort point, and an abort point that proceeds on silence has stopped be
 until one of three answers comes back, each with its own consequence:
 
 - **abort.** The arc stops before the challenge phase spends a single fan-out. Set **Status** to
-  `aborted` (§8). **Keep the plan directory — never delete it.** An abort here
+  `aborted` (§8; `arc-state set <arc dir> arc aborted` in the backlog shape). **Keep the plan
+  directory — never delete it.** An abort here
   is this gate's strongest success case; deleting the directory would leave nothing anywhere
   recording that a decomposition was proposed and rejected, or what it said.
 - **redirect.** Rewrite the decomposition — the same kind of edit step 6's rework makes, directly in
   the plan directory, with no coder and no gate — and show the gate again against the rewrite. Edit
   the directory in place rather than deleting and rebuilding it. **Preface the second showing with
   one line per objection they raised:** the objection, and either the todo that now answers it, by
-  its new number, or a statement that it was not acted on and why. A rewrite renumbers todos, so
+  its new number (by its unchanged id in a backlog-shape arc, which never renumbers), or a statement
+  that it was not acted on and why. A markdown-shape rewrite renumbers todos, so
   without those lines they would have to re-derive from scratch whether each objection was answered
   — re-reading, at the one gate built to stop them re-reading.
 - **nod.** Step 6's fan-out spawns as planned.
@@ -2326,14 +2679,16 @@ headings already hold their own values, so approval writes `running` on every he
 `planning` — an arc stopped at a challenge stall has no other — and also on each PR the replan gave
 new todos; every other PR keeps the value it held, since writing `running` over a
 PR that is `done`, waiting on the maintainer, or untouched would reopen finished reading or restart
-a PR that is not.
+a PR that is not. A PR the replan rewound to `planning` (*A PR sent back from `accept`*, below) is
+one of those still at `planning`. In a backlog-shape arc (§8) these are separate writes, the arc's
+first, since its script refuses a PR at `running` under an arc still at `planning`.
 
 **A PR given new todos that already holds a line in `review.md`'s review log** (§11) gets one more
 line first, `reopened — replan`, whether its read was closed or still open, so the new code is read
 once its todos are done and no old triage is resumed over code the replan replaced. Two cases need
 none: a PR with no log line, which has no read begun; and a PR whose last line is **already** a
-`reopened` line — a test round's redesign logs its own (§14), and a second line would widen the next
-read from the round's diff to the whole PR.
+`reopened` line — the rewind below logs `reopened — replan` itself, a test round's redesign logs its
+own (§14), and a second line would widen the next read from the round's diff to the whole PR.
 
 Then remove the mid-replan note, which is spent, and **offer to carry on into the run phase in this
 session**. On the maintainer's go, the core's routing sends the approved arc to the run phase, whose
@@ -2389,8 +2744,9 @@ pick the adequate herd of lenses, researchers … to do this, according to the s
   waiting on a lens costs the flow §18 exists to protect. Without the challenge phase there is no
   pass at either end; the trace below still applies. **A PR at `running` stays `running` through a
   small replan** — its todos are being written beside code still to be written, and no read waits on
-  them. Only a small replan that adds todos to a PR at `accept` moves it, to `planning` and then
-  `running`, logging `reopened — replan` first as step 7 has it.
+  them. Only a small replan that adds todos to a PR at `accept` or `done` moves it: it rewinds the
+  PR to `planning` **before writing the first todo**, as *A PR sent back from `accept`* below has
+  it, writes the todos, and writes `running` itself once its pass is done.
 - **Large** — a changed approach, a re-split arc, a dropped pull request. Whichever phase finds it
   first writes a **mid-replan note**: what the maintainer agreed, what the replan must still do,
   which PRs it touches and the status each holds, the working copy's state (kept or discarded — a
@@ -2455,7 +2811,8 @@ round took.
 **Read in this order, and stop where the pointers stop** — such a directory runs large; one measured
 about 300 KB, two-thirds of it `challenge.md`:
 
-1. `README.md`'s header bullets and `## Todos` index, then the board (§3).
+1. `README.md`'s header bullets and `## Todos` index, then the board (§3) — in a backlog-shape arc
+   (§8), `arc-state check` and `arc-state board`, which stand in for both.
 2. `decisions.md`.
 3. Only the newest `## Round N` of `challenge.md`. Older rounds open only where that round or
    `decisions.md` points into them, with one exception: the running total of fan-outs (§16, *e.*)
@@ -2471,7 +2828,8 @@ about 300 KB, two-thirds of it `challenge.md`:
   fan-out, or `unresolved → accepted (maintainer)` and on to step 7 — rather than resuming past it.
   Search all of `challenge.md` for them, not only its newest round, since a transition is recorded
   in place.
-- **A mid-replan note is finished, not re-derived.** Where the Status bullet carries one, or
+- **A mid-replan note is finished, not re-derived.** Where the Status bullet carries one (in a
+  backlog-shape arc, the `- **Mid-replan:**` header bullet), or
   `decisions.md` already says what the replan must still do, that is the work. An agreed replan
   resumes at step 5 without a new pre-plan and skips the pre-challenge gate, unless the note says
   otherwise: the maintainer approved the change in the session that wrote the note, and asking again
@@ -2491,6 +2849,16 @@ about 300 KB, two-thirds of it `challenge.md`:
   whose answer widened the arc (§12) — and what it leaves is the triaged
   list in `review.md`, the mid-replan note and its `decisions.md` line; the todos are plain-numbered,
   written from the findings the note names.
+  **Either way the PR is rewound before its first todo is written**, in this order: for a large
+  replan the mid-replan note and the arc's `planning` are already written; then, when the PR holds
+  any review-log line and its last line is not already a `reopened` one, `reopened — replan` in the
+  log; then the PR's heading `planning`; then the todos. The log comes first so that a session cut
+  off between the two leaves the PR at `accept` behind a `reopened` line, which the next entry finds
+  and finishes; the other order leaves `planning` behind `triage closed — nothing to fix`, which
+  routing (§8, row 4) reads as a cut-off test round and sends to the test phase. A test round's
+  redesign has already logged `reopened — test round <N> (redesign)`: it stays the last line, and
+  row 4 sends the PR at `planning` behind it here, not to the test phase. Approval (step 7) writes
+  `running`.
 - **A re-split grouped arc clears its `**PR:**` bullet** before approval (§8): the bullet names a
   pull request by number, a re-split renumbers or drops them, and an absent bullet is a boundary,
   which makes the next run derive it afresh.
@@ -3461,7 +3829,10 @@ costs one planning pass and one loop, and nothing is published until they are sa
 PR. Nothing else does — not a clean gate, not another lens pass, not your own read of the diff. (The
 one exception is a meta-arc's close by the store's role, §21, which runs on its own evidence and
 never on any of those three.) On their *finished*, write the PR heading `done`, and the arc's
-**Status** `done` too when every other PR is already `done` — in an arc of one PR, both at once.
+**Status** `done` too when every other PR is already `done` or `aborted` — in an arc of one PR, both
+at once, the PR first. Their word that the PR is closed without merging writes it `aborted` the same
+way: the arc `done` when every other PR is already closed and one is `done`, the arc `aborted` only
+when every PR is.
 Where journeys are installed, an arc's `done` that leaves every other arc of the journey settled also
 asks the maintainer, in the same reply, whether the journey is over (§8). In a grouped arc this
 handoff is one pull request's, and their *finished* is a go for that PR alone (§8, *Grouping an arc
@@ -3534,12 +3905,13 @@ not merged:
   while the read is still open.
 - **During that read's own fix pass** — at `planning` or `running` with the last line `triage closed
   — fix todos: …` or `fix todos: …`. The read is open here too.
-- **Not at `done`**, and **not a PR with other code still to be written** — `planning` or `running`
-  with no log of its own, or with a last line of `reopened`, a round or a replan being coded.
-  Findings on it wait for its own end.
+- **Not at `done` or `aborted`**, and **not a PR with other code still to be written** —
+  `planning` or `running` with no log of its own, or with a last line of `reopened`, a round or a
+  replan being coded. Findings on it wait for its own end.
 
 **A PR at `planning` whose last line is `confirmed`, `triage closed — nothing to fix` or `reopened —
-test round <N>`** is a round an earlier session was cut off in (step 4 writes the heading first).
+test round <N>`** — not a `(redesign)` one, which is the planning phase's (§9) — is a round an
+earlier session was cut off in (step 4 writes the heading first).
 Finish that round — whatever of step 4's writing and step 5's `running` write is missing, reusing
 the reports and todo files already on disk — rather than opening another.
 
@@ -4665,9 +5037,11 @@ rules in those files, and running on without them would absorb it into a revisio
   don't-snapshot flag.
 - **Never rewrite a revision while an agent is live in a workspace whose working copy descends from
   it.** This replaces a lock file and is stronger: it removes the write rather than guarding it.
-- **A fifth todo status, `human-coding`**, so the board shows at a glance that the arc is waiting on a
-  person rather than on an agent. A `- **Coder:** human` bullet on the todo is what routes it; the
-  absence of the bullet *is* the agent default.
+- **A fifth todo word on disk, `human-coding`**, so the board shows at a glance that the arc is
+  waiting on a person rather than on an agent — in §8's vocabulary a `running` todo assigned the
+  maintainer, and in the backlog shape exactly that, an assignee. A `- **Coder:** human` bullet on
+  the todo is what routes it (the `coder-human` label in the backlog shape); the absence of the
+  bullet *is* the agent default.
 - **A return vocabulary for the human**: `finished`, `this todo is wrong`, `this needs a decision`,
   plus, in a workspace-capable VCS, `spiked` (they described their revision and stepped off it,
   leaving it half-finished for an agent to drain) and `hands up:` (their hands are off the keyboard,
@@ -4942,12 +5316,12 @@ list is recorded as *observed* or *not observed*. A bullet only a downstream met
 recorded *not applicable* by an ordinary arc, leaves the phase open for one that can. It is
 **closed** when the arc moves to `done`.
 
-**The pool the check scans** is the `underway` arcs with a watch order whose PRs are all `done` or
-waiting on the maintainer (§8, *The Status vocabulary*: `accept`, the automatic read closed). A
-`done` arc is not in it, nor is an arc whose read is still open, nor one with a PR sent back to
-`planning` or `running` by a test round, a fix todo or a small replan — it returns once that PR is
-waiting on the maintainer again. So a watched arc's round has to be run to completion: left half-run,
-the arc silently stops being scanned, with nothing anywhere saying so. Telling the two kinds of
+**The pool the check scans** is the `underway` arcs with a watch order whose PRs are all `done`,
+`aborted` or waiting on the maintainer (§8, *The Status vocabulary*: `accept`, the automatic read
+closed). A `done` arc is not in it, nor is an arc whose read is still open, nor one with a PR sent
+back to `planning` or `running` by a test round, a fix todo or a small replan — it returns once that
+PR is waiting on the maintainer again. So a watched arc's round has to be run to completion: left
+half-run, the arc silently stops being scanned, with nothing anywhere saying so. Telling the two kinds of
 `accept` apart costs the scan one read of each PR's last review-log line (§11).
 
 **Who closes it.** Without the observation store (§19), the maintainer, by their word, as for any
@@ -4965,9 +5339,9 @@ whenever the maintainer asks.
   such a repository exists, the evidence is pending and the arc waits. **A missing event is not a
   missing shape:** a bullet waiting on something that has simply not happened yet — a threshold no
   session has crossed — stays pending.
-- **Only where every PR is `done` or waiting on the maintainer.** The close writes `done` on each PR
-  still waiting and on the arc, so a PR whose read is still open, or that holds an open todo, keeps
-  the arc `underway` whatever its observations say; the check's line names that PR.
+- **Only where every PR is `done`, `aborted` or waiting on the maintainer.** The close writes
+  `done` on each PR still waiting and on the arc, so a PR whose read is still open, or that holds an
+  open todo, keeps the arc `underway` whatever its observations say; the check's line names that PR.
 - **Two exits, both writing `done`, never anything else.** *Works*: every bullet observed, or
   allowably not applicable — the arc's Status bullet names the observation that answered each phase.
   *Needs rework*: any bullet recorded *not observed* — the Status bullet names those bullets, a new
@@ -5041,9 +5415,13 @@ is not writing meta-arcs, this is dead weight — say so plainly.
   skills/arc/SKILL.md            the arc skill's core: routing and shared rules, under its cap (§5)
   skills/arc/RUN.md              a phase text, read in full when routing lands on it; PLAN.md
                                  and TEST.md beside it at Standard (§8)
-  skills/arc/<NAME>.md           companion files, read only on the trigger a phase text states
+  skills/arc/<NAME>.md           companion files, read only on the trigger a phase text states;
+                                 STATE.md among them where the backlog shape is installed (§8)
+  scripts/arc-state              the backlog shape's one writer of state (§8), called by
+                                 absolute path
   plans/arc-<slug>/              one directory per arc — or, with journeys installed,
-  plans/journey-<slug>/arcs/NN-<slug>/   every arc nested in a journey (§8)
+  plans/journey-<slug>/arcs/<slug>/   every arc nested in a journey (§8), named by its gist
+  plans/journey-<slug>/backlog/  the journey's Backlog.md backlog, in the backlog shape only
 <project>/.claude/agents/        project-level: applies only in that project
 <project>/.claude/skills/
 ```
@@ -5115,6 +5493,8 @@ looks obviously right.
   placeholder means there (§5).
 - **Hooks can fire on compaction.** Claude Code runs a `SessionStart` hook with the matcher `compact`
   right after one, and a `PostCompact` hook beside it; §8 installs the first and offers the second.
+  **The compaction hook also fires inside a compacted subagent** — a review lens, an extraction —
+  which runs no phase, so its message opens by telling such a session to ignore it (§8).
 - **Nested spawning works.** A subagent granted the agent-spawning tool can invoke it, and its own
   subagent replies. This was probed. But **the supervisor cannot see or bound what a subagent
   spawns**, so any brief that permits delegation must carry an explicit cap and require the agent to
@@ -5445,7 +5825,12 @@ the highest-value class — false reach claims that a plan's todo boundaries wer
 - **A language-specific tips directory.** The idea is worth stealing in one line: **keep per-technology
   notes in files an agent is told to read by name.** A subagent inherits the instruction-file
   hierarchy but **does not** inherit an on-demand file, so an agent that needs those rules must be
-  told to read that file explicitly.
+  told to read that file explicitly. One of its files held the Backlog.md facts the backlog shape
+  rests on (§8 keeps the portable ones), measured against one pinned version, beside that machine's
+  own recipe for installing it.
+- **The `arc-state` script's source.** About 1,100 lines, specific to one version of Backlog.md and
+  to one machine's paths; §8 gives its contract — commands, refusals, the integrity rules and what
+  `check` reports — which is what an adopter's own version has to honour, not its code.
 - **A statusline script, backup-push rules, a session-memory protocol, and the compaction-window
   plumbing** — a per-session window setting and the statusline that shows it — along with the
   companion file that held the originating repository's own handoff extras. All machine
@@ -5492,10 +5877,22 @@ Said plainly, because an adopting user is better served by knowing which parts e
   phase and the supervisor then walked the scenarios itself — which is precisely the failure the
   "check the app is up *before the loop*" rule was added to prevent. The brief is good; the evidence
   that it gets used is thin, and the rule that makes it reachable matters more than the brief does.
+- **The backlog shape (§8) has never run on a real arc.** Every claim made for it rests on scratch
+  probes — a real arc mirrored into a scratch backlog and rendered back line for line, seeded defects
+  reported, a status-line read timed — and its watch order fires only once the first arc is planned
+  in it. Recommend it, if at all, as an experiment: to a user who already runs journeys and has
+  already seen their plan state drift, with its price quoted (the Backlog.md CLI, a script of about
+  1,100 lines to write against §8's contract, `STATE.md`, and an edit to every phase text and brief),
+  and with the markdown shape left as every existing arc's home.
 - **Carrying on through compaction (§4, §8) is the least proven rule that governs every run.** It
   replaced a session rule that had never been seen to fire, and the reason it is safe — the re-read
-  of the core, the phase text and the arc's `README.md` after every compaction, with the steps taken
-  from what was just read — rests on one fact: a summary paraphrases, and the files do not. **What
+  of the core, the phase text and the arc's README header, index and House rules after every
+  compaction, with the steps taken from what was just read — rests on one fact: a summary
+  paraphrases, and the files do not. The cut of that re-read to arcs with work left and to part of
+  each README (§8) answered a measured fill of about 17% after each compaction; **its own effect on
+  that fill had not been measured at extraction time**, and the phase text, re-read whole, was by
+  then the bulk of what remained — one run supervisor still re-read about 2,800 lines, some 70,000
+  tokens, per compaction. **What
   has not been measured is how it holds over many compactions in one session**, and **which
   compaction window is best**: a smaller window keeps the context, and so every turn, cheaper, at
   one more re-read each time it fires. At extraction time the originating maintainer was running
@@ -5620,11 +6017,17 @@ Work through this with the user. Tick each line out loud.
 - [ ] There is exactly **one** arc skill, `<home>/skills/arc/`, and one `RUN.md` in it — §10 through
       §13 were merged into the file §7 wrote, and no `run-arc`, `plan-arc` or `test-arc` skill
       directory exists. Check by listing `<home>/skills/`; this failure is silent otherwise.
-- [ ] The two statuses (§3, §8) are in every phase text and they agree: each PR's in its `### PR <k>`
-      heading (`planning`/`running`/`accept`/`done`), the arc's in its bullet
-      (`planning`/`underway`/`done`/`aborted`), and no stop for the maintainer writes either. Every
-      index has at least `### PR 1`. `review.md` opens with the review log (§11), and every reader
-      that must tell a PR still being read from one waiting on the maintainer reads its last line.
+- [ ] The statuses (§3, §8) are in every phase text and they agree: one vocabulary of five words, a
+      subset per level — each PR's in its `### PR <k>` heading
+      (`planning`/`running`/`accept`/`done`/`aborted`), the arc's in its bullet
+      (`planning`/`underway`/`done`/`aborted`), each todo's in its file's heading, read through
+      §8's table of words on disk — and no stop for the maintainer writes any of them. An `aborted`
+      PR counts as closed beside `done` everywhere a rule reads "every PR `done`". Every index has
+      at least `### PR 1`. `review.md` opens with the review log (§11), and every reader that must
+      tell a PR still being read from one waiting on the maintainer reads its last line.
+- [ ] A replan that adds todos to a PR at `accept` or `done` rewinds it first — the `reopened —
+      replan` log line, then the heading `planning`, then the todos (§9); routing sends a PR at
+      `planning` behind a `(redesign)` line to the planning phase, not the test phase (§8).
 - [ ] `PLAN.md`'s step 5 ends with the **pre-challenge gate** (§9), and step 7 shows the *same*
       index summary rather than a second list.
 - [ ] Every index entry carries **summary bullets** (§3), in `PLAN.md`'s template and in both
@@ -5636,8 +6039,10 @@ Work through this with the user. Tick each line out loud.
 - [ ] The session carries on through compaction (§4, §8): no phase ends the session, prints a line
       for a fresh one except for resuming, or reads its own context occupancy; the planning scratch
       file is written before a plan directory exists and folded in at step 5; and, where the harness
-      offers it, the compaction hook is installed and names the core, the phase text and the arc's
-      `README.md`. The old session-rule script, if a previous install wrote one, is gone.
+      offers it, the compaction hook is installed, tells a session that runs no phase to ignore it,
+      and names the core, the phase text and, for each arc with work left, the README's header
+      bullets, index and House rules only. The old session-rule script, if a previous install wrote
+      one, is gone.
 
 **Optional — only what the user chose**
 
@@ -5666,9 +6071,19 @@ Work through this with the user. Tick each line out loud.
 - [ ] Journeys (§8): only for a user whose work regularly outgrows one arc. Every new plan is
       written nested, and older shapes on disk are left as they are; every phase tells an arc
       directory by its `todos/`, never by a House rules section; a journey argument never runs an
-      arc at `planning`; the next arc can be planned beside a run; observation files and workspaces
-      are named by arc id; a
-      journey's `over` is the maintainer's answer to a question, never written on the writer's own.
+      arc at `planning`; the next arc can be planned beside a run; a new arc's directory is
+      `arcs/<slug>/`, named by its gist with no number, and every message names an arc by its gist;
+      observation files and workspaces are named by arc id, checked unique; a journey's `over` is
+      the maintainer's answer to a question, never written on the writer's own.
+- [ ] The backlog shape (§8): only for a user who already runs journeys, has seen plan state drift,
+      and takes it as an experiment (§25). Backlog.md installed and pinned; `STATE.md` written, with
+      every phase text and brief naming state and pointing into it; `<home>/scripts/arc-state`
+      written against §8's contract and probed in a scratch backlog — a write outside a level's
+      words refused, each of `check`'s defects reported with its repair, `index` printing the
+      markdown index's form with each path visible; every backlog write in the phase texts and
+      briefs named as its `arc-state` command, none as an edit; the coder's note rule and the
+      reviewer's no-tick rule in their briefs; the compaction hook naming `STATE.md`'s shape
+      section; arcs already planned left in the markdown shape.
 - [ ] Grouping an arc into pull requests (§8): only for a team whose arcs reach review as pull
       requests and are sometimes too large for one. The grouped rules sit in `GROUPED.md`, an
       on-demand companion beside `RUN.md`, read only when the index has more than one `### PR`
